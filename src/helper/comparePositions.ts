@@ -87,7 +87,14 @@ export function recalculateCapturedPositions(
       const widthDiffRatio = Math.abs(totalCapturedWidth - planogramItem.width) / planogramItem.width;
 
       matchedCaptured.forEach((cItem, i) => {
-        let recalculatedPos = Number(planogramItem.position) + (i + 1) / 100; // e.g., 2.01, 2.02, etc.
+        let recalculatedPos: number;
+
+        // ✅ If exactly one captured matches this planogram product, keep same position
+        if (matchedCaptured.length === 1 && widthDiffRatio < ROUNDING_THRESHOLD) {
+          recalculatedPos = Number(planogramItem.position);
+        } else {
+          recalculatedPos = Number(planogramItem.position) + (i + 1) / 100;
+        }
 
         // Apply rounding adjustment for boundary case
         if (widthDiffRatio >= ROUNDING_THRESHOLD && i === matchedCaptured.length - 1) {
