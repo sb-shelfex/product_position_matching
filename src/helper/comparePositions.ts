@@ -117,3 +117,57 @@ export function recalculateCapturedPositions(
 
   return updatedCaptured;
 }
+
+export function matchProductsInCapturedToPlanogram(capturedImage: any, planogramImage: any) {
+  const matchedResults = capturedImage.map((captured: any) => {
+    const posArr = captured.recalculatedPosition;
+
+    // Case 1: invalid or empty positions
+    if (!Array.isArray(posArr) || posArr.length === 0) {
+      return { ...captured, matchingStatus: "invalid_position" };
+    }
+
+    // Case 2: multiple positions → product spans multiple slots
+    if (posArr.length > 1) {
+      return { ...captured, matchingStatus: "multi_slot" };
+    }
+
+    // Case 3: single position
+    const pos = posArr[0];
+
+    // Check if it's a whole integer
+    if (Number.isInteger(pos)) {
+      // Find corresponding planogram product
+      const planogramProduct = planogramImage.find((p: any) => Number(p.position) === pos);
+
+      if (!planogramProduct) {
+        return { ...captured, matchingStatus: "no_planogram_match" };
+      }
+
+      // Compare SKU codes
+      if (captured.skuCode === planogramProduct.skuCode) {
+        return {
+          ...captured,
+          matchingStatus: "matched",
+          matchedPlanogramProduct: planogramProduct,
+        };
+      } else {
+        return {
+          ...captured,
+          matchingStatus: "sku_mismatch",
+          matchedPlanogramProduct: planogramProduct,
+        };
+      }
+    }
+
+    // Case 4: Decimal → partial overlap
+    if (!Number.isInteger(pos)) {
+      return { ...captured, matchingStatus: "partial_slot" };
+    }
+
+    // Fallback
+    return { ...captured, matchingStatus: "invalid_position" };
+  });
+
+  return matchedResults;
+}

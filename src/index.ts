@@ -3,10 +3,10 @@ import { getBoundingBoxesBySku, getMatchingProductSkuCodes, getPlanogramWidths, 
 import { pi } from "./jsons/planogram_image";
 import { ci } from "./jsons/captured_image";
 import { getRepresentativeScalingFactor, getScalingFactors } from "./helper/getClusterData";
-import { recalculateCapturedPositions } from "./helper/comparePositions";
+import { matchProductsInCapturedToPlanogram, recalculateCapturedPositions } from "./helper/comparePositions";
 
 const app = express();
-const PORT = 3000;
+const PORT = 4000;
 
 app.get("/", (req, res) => {
   res.send("Hello from Node + TypeScript!");
@@ -58,8 +58,8 @@ async function compute() {
     console.log("scalingFactors", scalingFactors);
 
     // Compute cumulative scaling factor
-    const overallScalingFactor  = getRepresentativeScalingFactor(scalingFactors);
-    console.log("overallScalingFactor ", overallScalingFactor );
+    const overallScalingFactor = getRepresentativeScalingFactor(scalingFactors);
+    console.log("overallScalingFactor ", overallScalingFactor);
 
     // According to scalling facor find widths of all products in captured image
     const scaledWidthsOfCapturedProducts = getScaledWidthsBySku(ciProducts, overallScalingFactor);
@@ -70,9 +70,12 @@ async function compute() {
     console.log("widthOfPlanogramProducts", widthOfPlanogramProducts);
 
     // Recalculate positions for captured image
-    const result = recalculateCapturedPositions(widthOfPlanogramProducts, scaledWidthsOfCapturedProducts);
-    console.log("result", result);
-    
+    const capturedProductsWithNewPositions = recalculateCapturedPositions(widthOfPlanogramProducts, scaledWidthsOfCapturedProducts);
+    console.log("capturedProductsWithNewPositions", capturedProductsWithNewPositions);
+
+    // Match captured products positions to planogram
+    const productPositionMatchingResult = matchProductsInCapturedToPlanogram(scaledWidthsOfCapturedProducts, widthOfPlanogramProducts);
+    console.log("productPositionMatchingResult", productPositionMatchingResult);
   } catch (err) {
     console.error("Error reading or parsing JSON files:", err);
   }
