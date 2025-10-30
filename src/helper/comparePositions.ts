@@ -68,7 +68,14 @@ export function recalculateCapturedPositions(
         }
 
         // assign all planogram positions this captured covers
-        const positionsCovered = Array.from({ length: coverageCount }, (_, i) => Number(planogram[pIndex + i].position));
+        const positionsCovered = Array.from(
+          { length: coverageCount },
+          (_, i) => {
+            const planogramItem = planogram[pIndex + i];
+            return planogramItem ? Number(planogramItem.position) : null;
+          }
+        ).filter((pos) => pos !== null);
+
 
         capturedItem["recalculatedPosition"] = positionsCovered;
         updatedCaptured[cIndex] = capturedItem;
