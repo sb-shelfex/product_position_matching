@@ -57,7 +57,7 @@ export function getScaledWidthsBySku(captured: any[], overallScalingFactor: numb
       const width = Math.abs(Math.max(...xValues) - Math.min(...xValues));
 
       // Apply overall scaling factor
-      const comparableWidth = width * overallScalingFactor;
+      const comparableWidth = width / overallScalingFactor;
 
       return {
         skuCode: p["SKU-Code"],
