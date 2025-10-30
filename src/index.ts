@@ -29,11 +29,11 @@ async function compute() {
 
     // Get matching SKUs
     const matchingSkus = getMatchingProductSkuCodes(piProducts, ciProducts);
-    // console.log(matchingSkus);
+    console.log(matchingSkus);
 
     // Get bounding boxes
     const boundingBoxes = getBoundingBoxesBySku(matchingSkus, piProducts, ciProducts);
-    // console.dir(boundingBoxes, { depth: null });
+    console.dir(boundingBoxes, { depth: null });
 
     // let boundingBoxes = [
     //   {
@@ -47,9 +47,9 @@ async function compute() {
     //     captured_boundingBoxes: [{ width: 48.5 }, { width: 45.7 }, { width: 50.0 }, { width: 49.0 }],
     //   },
     //   {
-    //     sku: "shelfscan_00138",
+    //     sku: "shelfscan_00140",
     //     planogram_boundingBoxes: [{ width: 54.6 }, { width: 54.9 }, { width: 55.0 }, { width: 55.0 }],
-    //     captured_boundingBoxes: [{ width: 52.5 }, { width: 51.7 }, { width: 50.0 }, { width: 49.0 }],
+    //     captured_boundingBoxes: [{ width: 99.5 }, { width: 100.7 }, { width: 98.0 }, { width: 99.0 }],
     //   },
     // ];
 
