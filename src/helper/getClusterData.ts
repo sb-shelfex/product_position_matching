@@ -78,42 +78,116 @@ export function getScalingFactors(boundingBoxData: any[]) {
  * It removes outliers, finds the most common cluster of values,
  * and averages them to produce a stable scaling factor.
  */
-export function getRepresentativeScalingFactor(results: any[]) {
-  // 🔧 Tunable Parameters
-  const STD_DEV_MULTIPLIER = 1.5; // Outlier cutoff (based on std deviation)
-  const MODE_CLUSTER_TOLERANCE = 0.05; // ± range around dominant value (5%)
-  const ROUNDING_PRECISION = 0.01; // Precision for grouping (0.01 = 1%)
-  const DECIMAL_PRECISION = 3; // Final output precision
-  // console.log("🧮 INPUT RESULTS:", JSON.stringify(results, null, 2));
+// export function getRepresentativeScalingFactor(results: any[]) {
+//   // 🔧 Tunable Parameters
+//   const STD_DEV_MULTIPLIER = 1.5; // Outlier cutoff (based on std deviation)
+//   const MODE_CLUSTER_TOLERANCE = 0.05; // ± range around dominant value (5%)
+//   const ROUNDING_PRECISION = 0.01; // Precision for grouping (0.01 = 1%)
+//   const DECIMAL_PRECISION = 3; // Final output precision
+//   // console.log("🧮 INPUT RESULTS:", JSON.stringify(results, null, 2));
 
-  // Extract scaling factors
-  const scalingFactors = results.map((r) => r.scalingFactor).filter((v) => typeof v === "number" && v > 0);
-  // console.log("📊 Extracted scaling factors:", scalingFactors);
+//   // Extract scaling factors
+//   const scalingFactors = results.map((r) => r.scalingFactor).filter((v) => typeof v === "number" && v > 0);
+//   // console.log("📊 Extracted scaling factors:", scalingFactors);
+
+//   if (scalingFactors.length === 0) return 0;
+
+//   // Sort for stable processing
+//   const sorted = [...scalingFactors].sort((a, b) => a - b);
+//   // console.log("📏 Sorted scaling factors:", sorted);
+
+//   // Compute mean and std deviation
+//   const mean = sorted.reduce((sum, s) => sum + s, 0) / sorted.length;
+//   const variance = sorted.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / sorted.length;
+//   const stdDev = Math.sqrt(variance);
+//   // console.log(`📈 Mean: ${mean.toFixed(4)}, StdDev: ${stdDev.toFixed(4)}`);
+
+//   // Remove outliers
+//   const minAllowed = mean - STD_DEV_MULTIPLIER * stdDev;
+//   const maxAllowed = mean + STD_DEV_MULTIPLIER * stdDev;
+//   // console.log(`🚫 Outlier cutoff range: [${minAllowed.toFixed(4)}, ${maxAllowed.toFixed(4)}]`);
+
+//   const filtered = sorted.filter((s) => s >= minAllowed && s <= maxAllowed);
+//   // console.log("✅ Filtered (outliers removed):", filtered);
+
+//   if (filtered.length === 0) {
+//     // console.warn("⚠️ No values left after filtering, returning mean.");
+//     return Number(mean.toFixed(DECIMAL_PRECISION));
+//   }
+
+//   // Round and find most frequent scaling factor
+//   const freqMap = new Map<number, number>();
+//   filtered.forEach((s) => {
+//     const rounded = Math.round(s / ROUNDING_PRECISION) * ROUNDING_PRECISION;
+//     freqMap.set(rounded, (freqMap.get(rounded) || 0) + 1);
+//   });
+//   // console.log("📦 Frequency map:", Object.fromEntries(freqMap));
+
+//   let mode = 0,
+//     maxCount = 0;
+//   freqMap.forEach((count, val) => {
+//     if (count > maxCount) {
+//       maxCount = count;
+//       mode = val;
+//     }
+//   });
+
+//   // 🧠 NEW: Handle case where all counts == 1
+//   if (maxCount === 1 && filtered.length > 1) {
+//     // find the tightest cluster of consecutive values
+//     let minGap = Infinity;
+//     for (let i = 1; i < filtered.length; i++) {
+//       const gap = filtered[i] - filtered[i - 1];
+//       if (gap < minGap) {
+//         minGap = gap;
+//         // set mode as midpoint of these two
+//         mode = (filtered[i] + filtered[i - 1]) / 2;
+//       }
+//     }
+//     // console.log(`🧠 Adjusted mode (cluster midpoint): ${mode}`);
+//   }
+//   // console.log(`🎯 Mode value: ${mode}, Count: ${maxCount}`);
+
+//   // Average all values close to the mode
+//   const cluster = filtered.filter((s) => Math.abs(s - mode) <= MODE_CLUSTER_TOLERANCE);
+//   // console.log(`🧩 Cluster around mode ±${MODE_CLUSTER_TOLERANCE}:`, cluster);
+
+//   const avgCluster = cluster.reduce((sum, s) => sum + s, 0) / cluster.length;
+//   // console.log(`🔹 Cluster average: ${avgCluster}`);
+
+//   const finalValue = Number(avgCluster.toFixed(DECIMAL_PRECISION));
+//   // console.log(`✅ Final scaling factor (rounded): ${finalValue}`);
+
+//   return finalValue;
+// }
+
+export function getRepresentativeScalingFactor(results: any[]) {
+  const STD_DEV_MULTIPLIER = 1.5;
+  const MODE_CLUSTER_TOLERANCE = 0.05;
+  const ROUNDING_PRECISION = 0.01;
+  const DECIMAL_PRECISION = 3;
+
+  // Extract valid numeric scaling factors
+  const scalingFactors = results
+    .map((r) => r.scalingFactor)
+    .filter((v) => typeof v === "number" && v > 0);
 
   if (scalingFactors.length === 0) return 0;
 
-  // Sort for stable processing
   const sorted = [...scalingFactors].sort((a, b) => a - b);
-  // console.log("📏 Sorted scaling factors:", sorted);
 
-  // Compute mean and std deviation
+  // Compute mean & std deviation
   const mean = sorted.reduce((sum, s) => sum + s, 0) / sorted.length;
   const variance = sorted.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / sorted.length;
   const stdDev = Math.sqrt(variance);
-  // console.log(`📈 Mean: ${mean.toFixed(4)}, StdDev: ${stdDev.toFixed(4)}`);
 
   // Remove outliers
   const minAllowed = mean - STD_DEV_MULTIPLIER * stdDev;
   const maxAllowed = mean + STD_DEV_MULTIPLIER * stdDev;
-  // console.log(`🚫 Outlier cutoff range: [${minAllowed.toFixed(4)}, ${maxAllowed.toFixed(4)}]`);
-
   const filtered = sorted.filter((s) => s >= minAllowed && s <= maxAllowed);
-  // console.log("✅ Filtered (outliers removed):", filtered);
 
-  if (filtered.length === 0) {
-    // console.warn("⚠️ No values left after filtering, returning mean.");
-    return Number(mean.toFixed(DECIMAL_PRECISION));
-  }
+  // If all filtered out, fallback to mean
+  if (filtered.length === 0) return Number(mean.toFixed(DECIMAL_PRECISION));
 
   // Round and find most frequent scaling factor
   const freqMap = new Map<number, number>();
@@ -121,10 +195,9 @@ export function getRepresentativeScalingFactor(results: any[]) {
     const rounded = Math.round(s / ROUNDING_PRECISION) * ROUNDING_PRECISION;
     freqMap.set(rounded, (freqMap.get(rounded) || 0) + 1);
   });
-  // console.log("📦 Frequency map:", Object.fromEntries(freqMap));
 
-  let mode = 0,
-    maxCount = 0;
+  // Find mode (most frequent value)
+  let mode = 0, maxCount = 0;
   freqMap.forEach((count, val) => {
     if (count > maxCount) {
       maxCount = count;
@@ -132,31 +205,27 @@ export function getRepresentativeScalingFactor(results: any[]) {
     }
   });
 
-  // 🧠 NEW: Handle case where all counts == 1
+  // Handle case where all counts == 1 (no dominant cluster)
   if (maxCount === 1 && filtered.length > 1) {
-    // find the tightest cluster of consecutive values
     let minGap = Infinity;
     for (let i = 1; i < filtered.length; i++) {
       const gap = filtered[i] - filtered[i - 1];
       if (gap < minGap) {
         minGap = gap;
-        // set mode as midpoint of these two
         mode = (filtered[i] + filtered[i - 1]) / 2;
       }
     }
-    // console.log(`🧠 Adjusted mode (cluster midpoint): ${mode}`);
   }
-  // console.log(`🎯 Mode value: ${mode}, Count: ${maxCount}`);
 
-  // Average all values close to the mode
+  // Get cluster of values around mode
   const cluster = filtered.filter((s) => Math.abs(s - mode) <= MODE_CLUSTER_TOLERANCE);
-  // console.log(`🧩 Cluster around mode ±${MODE_CLUSTER_TOLERANCE}:`, cluster);
 
-  const avgCluster = cluster.reduce((sum, s) => sum + s, 0) / cluster.length;
-  // console.log(`🔹 Cluster average: ${avgCluster}`);
+  // ✅ Fallback: if no cluster values, use filtered set instead
+  const clusterToUse = cluster.length > 0 ? cluster : filtered;
+
+  const avgCluster = clusterToUse.reduce((sum, s) => sum + s, 0) / clusterToUse.length;
 
   const finalValue = Number(avgCluster.toFixed(DECIMAL_PRECISION));
-  // console.log(`✅ Final scaling factor (rounded): ${finalValue}`);
-
-  return finalValue;
+  return isFinite(finalValue) ? finalValue : Number(mean.toFixed(DECIMAL_PRECISION));
 }
+
