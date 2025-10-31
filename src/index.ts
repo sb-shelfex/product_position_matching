@@ -69,12 +69,17 @@ async function compute() {
     const widthOfPlanogramProducts = getPlanogramWidths(piProducts);
     console.log("widthOfPlanogramProducts", widthOfPlanogramProducts);
 
+    const totalPlanogramWidth = widthOfPlanogramProducts.reduce((a, b) => a + b.width, 0);
+    const totalCapturedWidth = scaledWidthsOfCapturedProducts.reduce((a, b) => a + b.comparableWidth, 0);
+    console.log({ totalPlanogramWidth, totalCapturedWidth });
+
+
     // Recalculate positions for captured image
     const capturedProductsWithNewPositions = recalculateCapturedPositions(widthOfPlanogramProducts, scaledWidthsOfCapturedProducts);
     console.log("capturedProductsWithNewPositions", capturedProductsWithNewPositions);
 
     // Match captured products positions to planogram
-    const productPositionMatchingResult = matchProductsInCapturedToPlanogram(scaledWidthsOfCapturedProducts, widthOfPlanogramProducts);
+    const productPositionMatchingResult = matchProductsInCapturedToPlanogram(capturedProductsWithNewPositions, widthOfPlanogramProducts);
     console.log("productPositionMatchingResult", productPositionMatchingResult);
   } catch (err) {
     console.error("Error reading or parsing JSON files:", err);
