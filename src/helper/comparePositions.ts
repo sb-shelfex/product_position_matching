@@ -76,7 +76,6 @@
 //           }
 //         ).filter((pos) => pos !== null);
 
-
 //         capturedItem["recalculatedPosition"] = positionsCovered;
 //         updatedCaptured[cIndex] = capturedItem;
 
@@ -178,7 +177,6 @@
 
 //   return matchedResults;
 // }
-
 
 // export function recalculateCapturedPositions(
 //   planogram: {
@@ -303,7 +301,6 @@
 
 //   return updatedCaptured;
 // }
-
 
 // export function recalculateCapturedPositions(
 //   planogram: {
@@ -438,7 +435,6 @@
 
 //   return updatedCaptured;
 // }
-
 
 // export function recalculateCapturedPositions(
 //   planogram: {
@@ -589,8 +585,6 @@
 //   return updatedCaptured;
 // }
 
-
-
 // export function matchProductsInCapturedToPlanogram(capturedImage: any, planogramImage: any) {
 //   const matchedResults = capturedImage.map((captured: any) => {
 //     const posArr = captured.recalculatedPosition;
@@ -645,11 +639,235 @@
 //   return matchedResults;
 // }
 
-
 /**
  * Optimal solution for recalculating captured product positions against planogram
  * Handles: orientation mismatch, multi-slot products, partial slots, SKU mismatches, overflows
  */
+
+// export function recalculateCapturedPositions(
+//   planogram: {
+//     skuCode: string;
+//     product: string;
+//     position: string;
+//     width: number;
+//     boundingBox: number[][];
+//   }[],
+//   captured: {
+//     skuCode: string;
+//     product: string;
+//     position: string;
+//     confidence: number;
+//     originalWidth: number;
+//     comparableWidth: number;
+//     boundingBox: number[][];
+//     recalculatedPosition?: number[];
+//     matchedPlanogramProduct?: any;
+//   }[]
+// ) {
+//   // 🔧 Tunable parameters
+//   const WIDTH_TOLERANCE_PERCENT = 18; // ±15% width tolerance
+//   const MULTI_SLOT_THRESHOLD = 1.4; // 1.4x width = spans multiple slots
+//   const MIN_OVERLAP_RATIO = 0.35; // Minimum 30% overlap to consider a match
+
+//   // Validation
+//   if (!planogram.length || !captured.length) return captured;
+
+//   // --- Step 1: Sort both arrays by X-coordinate (left to right) ---
+//   // const getX = (item: any) => item.boundingBox?.[0]?.[0] ?? 0;
+//   const getX = (item: any) => {
+//     if (!item.boundingBox?.length) return 0;
+//     const xs = item.boundingBox.map((pt:any) => pt[0]);
+//     const minX = Math.min(...xs);
+//     const maxX = Math.max(...xs);
+//     return (minX + maxX) / 2; // use center X instead of top-left
+//   };
+
+//   const sortedPlanogram = [...planogram].sort((a, b) => getX(a) - getX(b));
+//   const sortedCaptured = [...captured].sort((a, b) => getX(a) - getX(b));
+
+//   // --- Step 2: Initialize result array ---
+//   const updatedCaptured = sortedCaptured.map((c) => ({
+//     ...c,
+//     recalculatedPosition: [] as number[],
+//     // explicitly type as any so we can assign an object later (avoid inferred 'undefined' type)
+//     matchedPlanogramProduct: undefined as any,
+//   }));
+
+//   // --- Detect if captured starts mid-shelf (side capture correction) ---
+//     // const planStartX = getX(sortedPlanogram[0]);
+//     // const capStartX = getX(sortedCaptured[0]);
+//     // const planEndX = getX(sortedPlanogram[sortedPlanogram.length - 1]);
+//     // const capEndX = getX(sortedCaptured[sortedCaptured.length - 1]);
+
+//     // const totalPlanWidth = planEndX - planStartX;
+//     // const totalCapWidth = capEndX - capStartX;
+
+//     // // Compute starting offset ratio
+//     // const startOffsetRatio = (capStartX - planStartX) / totalPlanWidth;
+
+//     let pIndex = 0; // Planogram pointer
+//     // If capture starts noticeably to the right (>10%), shift planogram pointer
+//     // let startOffsetSlots = 0;
+//     // // ✅ Handle right or left capture offset
+//     // if (Math.abs(startOffsetRatio) > 0.1) {
+//     //   startOffsetSlots = Math.round(startOffsetRatio * sortedPlanogram.length);
+
+//     //   // If capture is from right (positive ratio) → skip plan slots from left
+//     //   if (startOffsetRatio > 0) {
+//     //     pIndex = Math.min(startOffsetSlots, sortedPlanogram.length - 1);
+//     //     console.log(`⚙️ Adjusted planogram start offset by +${startOffsetSlots} slots (right-side capture)`);
+//     //   }
+//     //   // If capture is from left (negative ratio) → shift planogram backwards
+//     //   else if (startOffsetRatio < 0) {
+//     //     pIndex = Math.max(0, pIndex + startOffsetSlots); // negative shift
+//     //     console.log(`⚙️ Adjusted planogram start offset by ${startOffsetSlots} slots (left-side capture)`);
+//     //   }
+//     // }
+
+
+//   let cIndex = 0; // Captured pointer
+
+//   // --- Step 3: Main matching loop ---
+//   while (pIndex < sortedPlanogram.length && cIndex < updatedCaptured.length) {
+//     const planItem = sortedPlanogram[pIndex];
+//     const capItem = updatedCaptured[cIndex];
+
+//     const widthRatio = capItem.comparableWidth / planItem.width;
+//     const widthDiff = Math.abs(capItem.comparableWidth - planItem.width);
+//     const widthDiffPercent = (widthDiff / planItem.width) * 100;
+
+//     // 🎯 CASE 1: Perfect single-slot match (within tolerance)
+//     if (
+//       widthDiffPercent <= WIDTH_TOLERANCE_PERCENT &&
+//       widthRatio < MULTI_SLOT_THRESHOLD
+//     ) {
+//       capItem.recalculatedPosition = [Number(planItem.position)];
+//       capItem.matchedPlanogramProduct = { ...planItem };
+//       pIndex++;
+//       cIndex++;
+//       continue;
+//     }
+
+//     // 🎯 CASE 2: Captured product spans multiple planogram slots
+//     if (widthRatio >= MULTI_SLOT_THRESHOLD) {
+//       let remainingWidth = capItem.comparableWidth;
+//       const coveredPositions: number[] = [];
+//       let tempPIndex = pIndex;
+
+//       // Accumulate planogram slots until captured width is covered
+//       while (
+//         tempPIndex < sortedPlanogram.length &&
+//         remainingWidth >= sortedPlanogram[tempPIndex].width * MIN_OVERLAP_RATIO
+//       ) {
+//         coveredPositions.push(Number(sortedPlanogram[tempPIndex].position));
+//         remainingWidth -= sortedPlanogram[tempPIndex].width;
+//         tempPIndex++;
+//       }
+
+//       if (coveredPositions.length > 0) {
+//         capItem.recalculatedPosition = coveredPositions;
+//         capItem.matchedPlanogramProduct = { ...planItem };
+//         pIndex = tempPIndex;
+//         cIndex++;
+//         continue;
+//       }
+//     }
+
+//     // 🎯 CASE 3: Multiple captured products fill one planogram slot
+//     if (
+//       capItem.comparableWidth <
+//       planItem.width * (1 - WIDTH_TOLERANCE_PERCENT / 100)
+//     ) {
+//       const groupedCaptured: typeof updatedCaptured = [];
+//       let accumulatedWidth = 0;
+//       let tempCIndex = cIndex;
+
+//       // Accumulate captured items until planogram width is satisfied
+//       while (
+//         tempCIndex < updatedCaptured.length &&
+//         accumulatedWidth < planItem.width * (1 + WIDTH_TOLERANCE_PERCENT / 100)
+//       ) {
+//         groupedCaptured.push(updatedCaptured[tempCIndex]);
+//         accumulatedWidth += updatedCaptured[tempCIndex].comparableWidth;
+//         tempCIndex++;
+
+//         // Stop if accumulated width is sufficient
+//         if (
+//           (Math.abs(accumulatedWidth - planItem.width) / planItem.width) *
+//             100 <=
+//           WIDTH_TOLERANCE_PERCENT
+//         ) {
+//           break;
+//         }
+//       }
+
+//       // Assign fractional or whole positions
+//       if (groupedCaptured.length === 1) {
+//         // Single captured matching single planogram
+//         groupedCaptured[0].recalculatedPosition = [Number(planItem.position)];
+//         groupedCaptured[0].matchedPlanogramProduct = { ...planItem };
+//       } else {
+//         // Multiple captured items for one planogram slot
+//         groupedCaptured.forEach((item, idx) => {
+//           const fractionalPos = Number(planItem.position) + (idx + 1) / 100;
+//           item.recalculatedPosition = [parseFloat(fractionalPos.toFixed(2))];
+//           item.matchedPlanogramProduct = { ...planItem };
+//         });
+//       }
+
+//       pIndex++;
+//       cIndex = tempCIndex;
+//       continue;
+//     }
+
+//     // 🎯 CASE 4: Slight mismatch - assign anyway with flag
+//     if (widthDiffPercent <= WIDTH_TOLERANCE_PERCENT * 1.5) {
+//       capItem.recalculatedPosition = [Number(planItem.position)];
+//       capItem.matchedPlanogramProduct = { ...planItem };
+//       pIndex++;
+//       cIndex++;
+//       continue;
+//     }
+
+//     // 🎯 FALLBACK: No clear match - move captured forward
+//     capItem.recalculatedPosition = [];
+//     capItem.matchedPlanogramProduct = undefined;
+//     cIndex++;
+//   }
+
+//   // --- Step 4: Handle remaining unmatched captured products ---
+//   while (cIndex < updatedCaptured.length) {
+//     const capItem = updatedCaptured[cIndex];
+
+//     // Try to find best-fit planogram slot based on SKU
+//     const matchingSku = sortedPlanogram.find(
+//       (p) => p.skuCode === capItem.skuCode
+//     );
+
+//     if (matchingSku) {
+//       // Assign to nearest available position of same SKU
+//       const lastMatchedIndex = sortedPlanogram.findIndex(
+//         (p) => p.skuCode === capItem.skuCode
+//       );
+//       if (lastMatchedIndex !== -1) {
+//         capItem.recalculatedPosition = [
+//           Number(sortedPlanogram[lastMatchedIndex].position),
+//         ];
+//         capItem.matchedPlanogramProduct = {
+//           ...sortedPlanogram[lastMatchedIndex],
+//         };
+//       }
+//     } else {
+//       // Completely unmatched (wrong SKU or overflow)
+//       capItem.recalculatedPosition = [];
+//       capItem.matchedPlanogramProduct = undefined;
+//     }
+
+//     cIndex++;
+//   }
+
+//   return updatedCaptured;
+// }
 
 export function recalculateCapturedPositions(
   planogram: {
@@ -672,31 +890,34 @@ export function recalculateCapturedPositions(
   }[]
 ) {
   // 🔧 Tunable parameters
-  const WIDTH_TOLERANCE_PERCENT = 15; // ±15% width tolerance
+  const WIDTH_TOLERANCE_PERCENT = 18; // ±18% width tolerance
   const MULTI_SLOT_THRESHOLD = 1.4; // 1.4x width = spans multiple slots
-  const MIN_OVERLAP_RATIO = 0.3; // Minimum 30% overlap to consider a match
+  const MIN_OVERLAP_RATIO = 0.35; // Minimum 35% overlap for multi-slot
 
   // Validation
   if (!planogram.length || !captured.length) return captured;
 
-  // --- Step 1: Sort both arrays by X-coordinate (left to right) ---
-  const getX = (item: any) => item.boundingBox?.[0]?.[0] ?? 0;
-  
+  // Sort by X-coordinate (center-based for accuracy)
+  const getX = (item: any) => {
+    if (!item.boundingBox?.length) return 0;
+    const xs = item.boundingBox.map((pt: any) => pt[0]);
+    return (Math.min(...xs) + Math.max(...xs)) / 2;
+  };
+
   const sortedPlanogram = [...planogram].sort((a, b) => getX(a) - getX(b));
   const sortedCaptured = [...captured].sort((a, b) => getX(a) - getX(b));
 
-  // --- Step 2: Initialize result array ---
-  const updatedCaptured = sortedCaptured.map(c => ({
+  // Initialize result array
+  const updatedCaptured = sortedCaptured.map((c) => ({
     ...c,
     recalculatedPosition: [] as number[],
-    // explicitly type as any so we can assign an object later (avoid inferred 'undefined' type)
-    matchedPlanogramProduct: undefined as any
+    matchedPlanogramProduct: undefined as any,
   }));
 
-  let pIndex = 0; // Planogram pointer
-  let cIndex = 0; // Captured pointer
+  let pIndex = 0;
+  let cIndex = 0;
 
-  // --- Step 3: Main matching loop ---
+  // Main matching loop
   while (pIndex < sortedPlanogram.length && cIndex < updatedCaptured.length) {
     const planItem = sortedPlanogram[pIndex];
     const capItem = updatedCaptured[cIndex];
@@ -705,7 +926,7 @@ export function recalculateCapturedPositions(
     const widthDiff = Math.abs(capItem.comparableWidth - planItem.width);
     const widthDiffPercent = (widthDiff / planItem.width) * 100;
 
-    // 🎯 CASE 1: Perfect single-slot match (within tolerance)
+    // CASE 1: Single-slot match (within tolerance)
     if (widthDiffPercent <= WIDTH_TOLERANCE_PERCENT && widthRatio < MULTI_SLOT_THRESHOLD) {
       capItem.recalculatedPosition = [Number(planItem.position)];
       capItem.matchedPlanogramProduct = { ...planItem };
@@ -714,15 +935,14 @@ export function recalculateCapturedPositions(
       continue;
     }
 
-    // 🎯 CASE 2: Captured product spans multiple planogram slots
+    // CASE 2: Captured spans multiple planogram slots
     if (widthRatio >= MULTI_SLOT_THRESHOLD) {
       let remainingWidth = capItem.comparableWidth;
       const coveredPositions: number[] = [];
       let tempPIndex = pIndex;
 
-      // Accumulate planogram slots until captured width is covered
       while (
-        tempPIndex < sortedPlanogram.length && 
+        tempPIndex < sortedPlanogram.length &&
         remainingWidth >= sortedPlanogram[tempPIndex].width * MIN_OVERLAP_RATIO
       ) {
         coveredPositions.push(Number(sortedPlanogram[tempPIndex].position));
@@ -739,13 +959,12 @@ export function recalculateCapturedPositions(
       }
     }
 
-    // 🎯 CASE 3: Multiple captured products fill one planogram slot
+    // CASE 3: Multiple captured items fill one planogram slot
     if (capItem.comparableWidth < planItem.width * (1 - WIDTH_TOLERANCE_PERCENT / 100)) {
       const groupedCaptured: typeof updatedCaptured = [];
       let accumulatedWidth = 0;
       let tempCIndex = cIndex;
 
-      // Accumulate captured items until planogram width is satisfied
       while (
         tempCIndex < updatedCaptured.length &&
         accumulatedWidth < planItem.width * (1 + WIDTH_TOLERANCE_PERCENT / 100)
@@ -754,19 +973,15 @@ export function recalculateCapturedPositions(
         accumulatedWidth += updatedCaptured[tempCIndex].comparableWidth;
         tempCIndex++;
 
-        // Stop if accumulated width is sufficient
         if (Math.abs(accumulatedWidth - planItem.width) / planItem.width * 100 <= WIDTH_TOLERANCE_PERCENT) {
           break;
         }
       }
 
-      // Assign fractional or whole positions
       if (groupedCaptured.length === 1) {
-        // Single captured matching single planogram
         groupedCaptured[0].recalculatedPosition = [Number(planItem.position)];
         groupedCaptured[0].matchedPlanogramProduct = { ...planItem };
       } else {
-        // Multiple captured items for one planogram slot
         groupedCaptured.forEach((item, idx) => {
           const fractionalPos = Number(planItem.position) + (idx + 1) / 100;
           item.recalculatedPosition = [parseFloat(fractionalPos.toFixed(2))];
@@ -779,8 +994,8 @@ export function recalculateCapturedPositions(
       continue;
     }
 
-    // 🎯 CASE 4: Slight mismatch - assign anyway with flag
-    if (widthDiffPercent <= WIDTH_TOLERANCE_PERCENT * 1.5) {
+    // CASE 4: Extended tolerance (up to 22.5%)
+    if (widthDiffPercent <= WIDTH_TOLERANCE_PERCENT * 1.25) {
       capItem.recalculatedPosition = [Number(planItem.position)];
       capItem.matchedPlanogramProduct = { ...planItem };
       pIndex++;
@@ -788,38 +1003,21 @@ export function recalculateCapturedPositions(
       continue;
     }
 
-    // 🎯 FALLBACK: No clear match - move captured forward
+    // FALLBACK: No match found
     capItem.recalculatedPosition = [];
     capItem.matchedPlanogramProduct = undefined;
     cIndex++;
   }
 
-  // --- Step 4: Handle remaining unmatched captured products ---
+  // Handle remaining unmatched captured items
   while (cIndex < updatedCaptured.length) {
-    const capItem = updatedCaptured[cIndex];
-    
-    // Try to find best-fit planogram slot based on SKU
-    const matchingSku = sortedPlanogram.find(p => p.skuCode === capItem.skuCode);
-    
-    if (matchingSku) {
-      // Assign to nearest available position of same SKU
-      const lastMatchedIndex = sortedPlanogram.findIndex(p => p.skuCode === capItem.skuCode);
-      if (lastMatchedIndex !== -1) {
-        capItem.recalculatedPosition = [Number(sortedPlanogram[lastMatchedIndex].position)];
-        capItem.matchedPlanogramProduct = { ...sortedPlanogram[lastMatchedIndex] };
-      }
-    } else {
-      // Completely unmatched (wrong SKU or overflow)
-      capItem.recalculatedPosition = [];
-      capItem.matchedPlanogramProduct = undefined;
-    }
-    
+    updatedCaptured[cIndex].recalculatedPosition = [];
+    updatedCaptured[cIndex].matchedPlanogramProduct = undefined;
     cIndex++;
   }
 
   return updatedCaptured;
 }
-
 
 export function matchProductsInCapturedToPlanogram(
   capturedImage: any[],
@@ -909,7 +1107,3 @@ export function matchProductsInCapturedToPlanogram(
 
   return matchedResults;
 }
-
-
-
-
