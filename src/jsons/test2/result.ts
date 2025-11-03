@@ -13,7 +13,7 @@ export const result_2 = [
   },
   {
     position: 4,
-    matchingStatus: "matched",
+    matchingStatus: "sku_mismatch",
   },
   {
     position: 5,
@@ -21,6 +21,22 @@ export const result_2 = [
   },
   {
     position: 6,
-    matchingStatus: "invalid_position",
+    matchingStatus: "sku_mismatch",
+  },
+  {
+    position: 7,
+    matchingStatus: "sku_mismatch",
+  },
+  {
+    position: 8,
+    matchingStatus: "sku_mismatch",
+  },
+  {
+    position: 9,
+    matchingStatus: "sku_mismatch",
+  },
+  {
+    position: 10,
+    matchingStatus: "sku_mismatch",
   },
 ];
