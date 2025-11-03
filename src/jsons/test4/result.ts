@@ -1,38 +1,34 @@
-export const result_3 = [
+export const result_4 = [
   {
     position: 1,
-    matchingStatus: "multi_slot",
+    matchingStatus: "matched",
   },
   {
     position: 2,
-    matchingStatus: "multi_slot",
+    matchingStatus: "matched",
   },
   {
     position: 3,
-    matchingStatus: "multi_slot",
+    matchingStatus: "matched",
   },
   {
     position: 4,
-    matchingStatus: "multi_slot",
+    matchingStatus: "matched",
   },
   {
     position: 5,
-    matchingStatus: "sku_mismatch",
+    matchingStatus: "matched",
   },
   {
     position: 6,
-    matchingStatus: "invalid_position",
+    matchingStatus: "multi_slot",
   },
   {
     position: 7,
-    matchingStatus: "invalid_position",
+    matchingStatus: "matched",
   },
   {
     position: 8,
-    matchingStatus: "invalid_position",
+    matchingStatus: "matched",
   },
-  {
-    position: 9,
-    matchingStatus: "invalid_position",
-  }
 ];
