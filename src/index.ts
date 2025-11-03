@@ -6,6 +6,9 @@ import { tests } from "./jsons";
 import { pi_2 } from "./jsons/test2/planogram_image";
 import { ci_2 } from "./jsons/test2/captured_image";
 import { result_2 } from "./jsons/test2/result";
+import { pi_3 } from "./jsons/test3/planogram_image";
+import { ci_3 } from "./jsons/test3/captured_image";
+import { result_3 } from "./jsons/test3/result";
 
 const app = express();
 const PORT = 4000;
@@ -78,7 +81,7 @@ async function computeOne(piData: any, ciData: any, result: any, testNo: number 
 
       // Match captured products positions to planogram
       const productPositionMatchingResult = matchProductsInCapturedToPlanogram(capturedProductsWithNewPositions, widthOfPlanogramProducts);
-      // console.log("productPositionMatchingResult", productPositionMatchingResult);
+      console.log("productPositionMatchingResult", productPositionMatchingResult);
 
       // compare matching result
       const matchingResult = compareResult(result, productPositionMatchingResult, testNo);
@@ -117,4 +120,4 @@ async function computeAll() {
 
 computeAll();
 
-// computeOne(pi_2, ci_2, result_2, 0);
+// computeOne(pi_3, ci_3, result_3, 0);

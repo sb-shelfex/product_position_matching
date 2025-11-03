@@ -4,6 +4,9 @@ import { result_1 } from "./test1/result";
 import { ci_2 } from "./test2/captured_image";
 import { pi_2 } from "./test2/planogram_image";
 import { result_2 } from "./test2/result";
+import { ci_3 } from "./test3/captured_image";
+import { pi_3 } from "./test3/planogram_image";
+import { result_3 } from "./test3/result";
 
 export const tests = [
   {
@@ -15,5 +18,10 @@ export const tests = [
     pi: pi_2,
     ci: ci_2,
     reuslt: result_2,
+  },
+  {
+    pi: pi_3,
+    ci: ci_3,
+    reuslt: result_3,
   },
 ];

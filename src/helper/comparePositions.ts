@@ -272,6 +272,8 @@ export function recalculateCapturedPositions(
     const widthDiff = Math.abs(capItem.comparableWidth - planItem.width);
     const widthDiffPercent = (widthDiff / planItem.width) * 100;
 
+    // console.log(`checking for - cip: ${cIndex} and pip: ${pIndex}, widthDiffPercent: ${widthDiffPercent}, widthRatio: ${widthRatio}`);
+
     // CASE 1: Single-slot match (within tolerance)
     if (widthDiffPercent <= WIDTH_TOLERANCE_PERCENT && widthRatio < MULTI_SLOT_THRESHOLD) {
       capItem.recalculatedPosition = [Number(planItem.position)];
@@ -282,7 +284,7 @@ export function recalculateCapturedPositions(
     }
 
     // CASE 2: Captured spans multiple planogram slots
-    if (widthRatio >= MULTI_SLOT_THRESHOLD) {
+    else if (widthRatio >= MULTI_SLOT_THRESHOLD) {
       let remainingWidth = capItem.comparableWidth;
       const coveredPositions: number[] = [];
       let tempPIndex = pIndex;
@@ -303,7 +305,7 @@ export function recalculateCapturedPositions(
     }
 
     // CASE 3: Multiple captured items fill one planogram slot
-    if (capItem.comparableWidth < planItem.width * (1 - WIDTH_TOLERANCE_PERCENT / 100)) {
+    else if (capItem.comparableWidth < planItem.width * (1 - WIDTH_TOLERANCE_PERCENT / 100)) {
       const groupedCaptured: typeof updatedCaptured = [];
       let accumulatedWidth = 0;
       let tempCIndex = cIndex;
@@ -334,7 +336,16 @@ export function recalculateCapturedPositions(
     }
 
     // CASE 4: Extended tolerance (up to 22.5%)
-    if (widthDiffPercent <= WIDTH_TOLERANCE_PERCENT * 1.25) {
+    else if (widthDiffPercent <= WIDTH_TOLERANCE_PERCENT * 1.25) {
+      capItem.recalculatedPosition = [Number(planItem.position)];
+      capItem.matchedPlanogramProduct = { ...planItem };
+      pIndex++;
+      cIndex++;
+      continue;
+    }
+
+    // check if any of the product is the last item
+    else if (pIndex === sortedPlanogram.length - 1 || cIndex === updatedCaptured.length - 1) {
       capItem.recalculatedPosition = [Number(planItem.position)];
       capItem.matchedPlanogramProduct = { ...planItem };
       pIndex++;
@@ -343,9 +354,11 @@ export function recalculateCapturedPositions(
     }
 
     // FALLBACK: No match found
-    capItem.recalculatedPosition = [];
-    capItem.matchedPlanogramProduct = undefined;
-    cIndex++;
+    else {
+      capItem.recalculatedPosition = [];
+      capItem.matchedPlanogramProduct = undefined;
+      cIndex++;
+    }
   }
 
   // Handle remaining unmatched captured items
@@ -373,14 +386,13 @@ export function matchProductsInCapturedToPlanogram(capturedImage: any[], planogr
 
     // Case 2: multiple positions → product spans multiple slots
     if (posArr.length > 1) {
-      const allPositionsValid = posArr.every((pos: number) => {
-        const planItem = planogramImage.find((p: any) => Number(p.position) === pos);
-        return planItem && planItem.skuCode === captured.skuCode;
-      });
+      const matchedPlanItems = planogramImage.filter((p: any) => posArr.includes(Number(p.position)));
+      const allPositionsValid = matchedPlanItems.every((p: any) => p.skuCode === captured.skuCode);
 
       return {
         ...captured,
         matchingStatus: allPositionsValid ? "multi_slot" : "multi_slot",
+        matchedPlanogramProduct: matchedPlanItems,
       };
     }
 
