@@ -37,6 +37,6 @@ export const result_2 = [
   },
   {
     position: 10,
-    matchingStatus: "sku_mismatch",
+    matchingStatus: "invalid_position",
   },
 ];
