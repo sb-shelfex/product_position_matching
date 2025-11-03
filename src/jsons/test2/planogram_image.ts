@@ -1,6 +1,6 @@
 //Planogram data
 
-export const pi = {
+export const pi_2 = {
   products: [
     {
       product: "AQUAFINA_1L_PET",

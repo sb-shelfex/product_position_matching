@@ -97,3 +97,37 @@ export function getPlanogramWidths(planogram: any[]) {
 
   return results;
 }
+
+export function compareResult(preDefinedResult: any[], calculatedResult: any[], testNo: number) {
+  const comparison: any[] = [];
+  let total = Math.min(preDefinedResult.length, calculatedResult.length);
+  let matchedCount = 0;
+
+  for (let i = 0; i < total; i++) {
+    const pre = preDefinedResult[i];
+    const calc = calculatedResult[i];
+
+    const positionMatched = Number(pre.position) === Number(calc.position);
+    const statusMatched = pre.matchingStatus.toLowerCase() === calc.matchingStatus.toLowerCase();
+
+    if (positionMatched && statusMatched) matchedCount++;
+
+    comparison.push({
+      index: i + 1,
+      predefinedPosition: pre.position,
+      calculatedPosition: calc.position,
+      positionMatched,
+      predefinedStatus: pre.matchingStatus,
+      calculatedStatus: calc.matchingStatus,
+      statusMatched,
+    });
+  }
+
+  const analytics = {
+    testNo,
+    totalCompared: Math.max(preDefinedResult.length, calculatedResult.length),
+    totalFullyMatched: matchedCount,
+  };
+
+  return { comparison, analytics };
+}

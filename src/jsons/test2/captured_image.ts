@@ -1,6 +1,6 @@
 // Capture Data
 
-export const ci = {
+export const ci_2 = {
   products: [
     {
       product: "AQUAFINA_1L_PET",
