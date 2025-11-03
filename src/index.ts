@@ -81,7 +81,7 @@ async function computeOne(piData: any, ciData: any, result: any, testNo: number 
 
       // Match captured products positions to planogram
       const productPositionMatchingResult = matchProductsInCapturedToPlanogram(capturedProductsWithNewPositions, widthOfPlanogramProducts);
-      console.log("productPositionMatchingResult", productPositionMatchingResult);
+      // console.log("productPositionMatchingResult", productPositionMatchingResult);
 
       // compare matching result
       const matchingResult = compareResult(result, productPositionMatchingResult, testNo);
