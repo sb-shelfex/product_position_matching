@@ -15,6 +15,10 @@ import { result_4 } from "./jsons/test4/result";
 import { pi_13 } from "./jsons/test13/planogram_image";
 import { ci_13 } from "./jsons/test13/captured_image";
 import { result_13 } from "./jsons/test13/result";
+import { pi_5 } from "./jsons/test5/planogram_image";
+import { ci_15 } from "./jsons/test15/captured_image";
+import { ci_5 } from "./jsons/test5/captured_image";
+import { result_5 } from "./jsons/test5/result";
 
 const app = express();
 const PORT = 4000;
@@ -126,4 +130,4 @@ async function computeAll() {
 
 computeAll();
 
-// computeOne(pi_13, ci_13, result_13, 13);
+// computeOne(pi_5, ci_5, result_5, 0);
