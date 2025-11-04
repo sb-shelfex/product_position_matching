@@ -236,24 +236,29 @@ export function recalculateCapturedPositions(
   }[]
 ) {
   // 🔧 Tunable parameters
-  const WIDTH_TOLERANCE_PERCENT = 10; // ±18% width tolerance
-  const MULTI_SLOT_THRESHOLD = 1.4; // 1.4x width = spans multiple slots
-  const MIN_OVERLAP_RATIO = 0.35; // Minimum 35% overlap for multi-slot
+  const WIDTH_TOLERANCE_PERCENT = 10; // ±10% width tolerance
+  const MULTI_SLOT_THRESHOLD = 1.4; // captured wider than planogram by this factor → spans multiple slots
+  const MIN_OVERLAP_RATIO = 0.35; // minimum overlap fraction to consider covering a planogram slot
 
   // Validation
-  if (!planogram.length || !captured.length) return captured;
+  if (!planogram || !captured) return captured;
+  if (!planogram.length) {
+    // no planogram: assign incremental positions to captured items starting from 1
+    return captured.map((c, i) => ({ ...c, recalculatedPosition: [i + 1] }));
+  }
 
-  // Sort by X-coordinate (center-based for accuracy)
+  // helper to get center X if boundingBox provided (stable ordering)
   const getX = (item: any) => {
-    if (!item.boundingBox?.length) return 0;
+    if (!item?.boundingBox?.length) return 0;
     const xs = item.boundingBox.map((pt: any) => pt[0]);
     return (Math.min(...xs) + Math.max(...xs)) / 2;
   };
 
+  // sort by visual position (x-center) to align sequences
   const sortedPlanogram = [...planogram].sort((a, b) => getX(a) - getX(b));
   const sortedCaptured = [...captured].sort((a, b) => getX(a) - getX(b));
 
-  // Initialize result array
+  // prepare returned array (clone)
   const updatedCaptured = sortedCaptured.map((c) => ({
     ...c,
     recalculatedPosition: [] as number[],
@@ -268,14 +273,17 @@ export function recalculateCapturedPositions(
     const planItem = sortedPlanogram[pIndex];
     const capItem = updatedCaptured[cIndex];
 
-    const widthRatio = capItem.comparableWidth / planItem.width;
-    const widthDiff = Math.abs(capItem.comparableWidth - planItem.width);
-    const widthDiffPercent = (widthDiff / planItem.width) * 100;
+    const planWidth = Number(planItem.width);
+    const capWidth = Number(capItem.comparableWidth);
+    const widthRatio = capWidth / (planWidth || 1);
+    const widthDiffPercent = (Math.abs(capWidth - planWidth) / (planWidth || 1)) * 100;
 
-    // console.log(`checking for - cip: ${cIndex} and pip: ${pIndex}, widthDiffPercent: ${widthDiffPercent}, widthRatio: ${widthRatio}`);
+    console.log(`checking for - cip: ${cIndex} and pip: ${pIndex}, widthDiffPercent: ${widthDiffPercent}, widthRatio: ${widthRatio}`);
 
+    console.log(`-- Case 1 Checking: ${widthDiffPercent} <= ${WIDTH_TOLERANCE_PERCENT}: ${widthDiffPercent <= WIDTH_TOLERANCE_PERCENT} && ${widthRatio} < ${MULTI_SLOT_THRESHOLD}: ${widthRatio < MULTI_SLOT_THRESHOLD}`);
     // CASE 1: Single-slot match (within tolerance)
     if (widthDiffPercent <= WIDTH_TOLERANCE_PERCENT && widthRatio < MULTI_SLOT_THRESHOLD) {
+      console.log("used case 1");      
       capItem.recalculatedPosition = [Number(planItem.position)];
       capItem.matchedPlanogramProduct = { ...planItem };
       pIndex++;
@@ -283,8 +291,10 @@ export function recalculateCapturedPositions(
       continue;
     }
 
-    // CASE 2: Captured spans multiple planogram slots
-    else if (widthRatio >= MULTI_SLOT_THRESHOLD) {
+    console.log(`-- Case 2A Checking: ${widthRatio} >= ${MULTI_SLOT_THRESHOLD}: ${widthRatio >= MULTI_SLOT_THRESHOLD}`);
+    // CASE 2A: Captured is significantly wider → may span multiple planogram slots
+    if (widthRatio >= MULTI_SLOT_THRESHOLD) {
+      console.log("used case 2A");      
       let remainingWidth = capItem.comparableWidth;
       const coveredPositions: number[] = [];
       let tempPIndex = pIndex;
@@ -298,14 +308,45 @@ export function recalculateCapturedPositions(
       if (coveredPositions.length > 0) {
         capItem.recalculatedPosition = coveredPositions;
         capItem.matchedPlanogramProduct = { ...planItem };
-        pIndex = tempPIndex;
+        pIndex = Math.max(pIndex + coveredPositions.length, tempPIndex);
         cIndex++;
         continue;
       }
     }
 
+    console.log(`-- Case 2B Checking ${widthRatio} <= ${1 / MULTI_SLOT_THRESHOLD} : ${widthRatio <= 1 / MULTI_SLOT_THRESHOLD}`);
+    // CASE 2B (opposite): Planogram slot is much wider → group multiple captured items
+    if (widthRatio <= 1 / MULTI_SLOT_THRESHOLD) {
+      console.log("used case 2B");      
+      let remainingPlanWidth = planWidth;
+      const groupedCaptured: typeof updatedCaptured = [];
+      let tempCIndex = cIndex;
+
+      while (tempCIndex < updatedCaptured.length && remainingPlanWidth >= updatedCaptured[tempCIndex].comparableWidth * MIN_OVERLAP_RATIO) {
+        groupedCaptured.push(updatedCaptured[tempCIndex]);
+        remainingPlanWidth -= updatedCaptured[tempCIndex].comparableWidth;
+        tempCIndex++;
+      }
+
+      if (groupedCaptured.length > 0) {
+        // assign fractional positions for each captured within this planogram slot
+        groupedCaptured.forEach((item, idx) => {
+          // 1st captured becomes pos + 0.01, second pos + 0.02 etc.
+          const fractionalPos = Number(planItem.position) + (idx + 1) / 100;
+          item.recalculatedPosition = [parseFloat(fractionalPos.toFixed(2))];
+          item.matchedPlanogramProduct = { ...planItem };
+        });
+
+        pIndex++;
+        cIndex = tempCIndex;
+        continue;
+      }
+    }
+
+    console.log(`-- Case 3 Checking: ${capItem.comparableWidth} < ${planItem.width * (1 - WIDTH_TOLERANCE_PERCENT / 100)}: ${capItem.comparableWidth < planItem.width * (1 - WIDTH_TOLERANCE_PERCENT / 100)}`);
     // CASE 3: Multiple captured items fill one planogram slot
-    else if (capItem.comparableWidth < planItem.width * (1 - WIDTH_TOLERANCE_PERCENT / 100)) {
+    if (capItem.comparableWidth < planItem.width * (1 - WIDTH_TOLERANCE_PERCENT / 100)) {
+      console.log("used case 3");      
       const groupedCaptured: typeof updatedCaptured = [];
       let accumulatedWidth = 0;
       let tempCIndex = cIndex;
@@ -335,8 +376,10 @@ export function recalculateCapturedPositions(
       continue;
     }
 
-    // CASE 4: Extended tolerance (up to 22.5%)
-    else if (widthDiffPercent <= WIDTH_TOLERANCE_PERCENT * 1.25) {
+    console.log(`-- Case 4 Checking: ${widthDiffPercent} <= ${WIDTH_TOLERANCE_PERCENT}: ${widthDiffPercent <= WIDTH_TOLERANCE_PERCENT * 1.25}`);
+    // CASE 4: Slightly extended tolerance (fallback within 1.25 * tolerance)
+    if (widthDiffPercent <= WIDTH_TOLERANCE_PERCENT * 1.25) {
+      console.log("used case 4");      
       capItem.recalculatedPosition = [Number(planItem.position)];
       capItem.matchedPlanogramProduct = { ...planItem };
       pIndex++;
@@ -344,8 +387,10 @@ export function recalculateCapturedPositions(
       continue;
     }
 
-    // check if any of the product is the last item
-    else if (pIndex === sortedPlanogram.length - 1 || cIndex === updatedCaptured.length - 1) {
+    console.log(`-- Case 5 Checking: ${pIndex} === ${sortedPlanogram.length - 1} || ${cIndex} === ${updatedCaptured.length - 1}: ${pIndex === sortedPlanogram.length - 1 || cIndex === updatedCaptured.length - 1}`);
+    // CASE 5: If this is last planogram item OR last captured item, assign best-effort integer position
+    if (pIndex === sortedPlanogram.length - 1 || cIndex === updatedCaptured.length - 1) {
+      console.log("used case 5");      
       capItem.recalculatedPosition = [Number(planItem.position)];
       capItem.matchedPlanogramProduct = { ...planItem };
       pIndex++;
@@ -353,12 +398,11 @@ export function recalculateCapturedPositions(
       continue;
     }
 
+    console.log(`-- FALLBACK: No match found`);
     // FALLBACK: No match found
-    else {
-      capItem.recalculatedPosition = [];
-      capItem.matchedPlanogramProduct = undefined;
-      cIndex++;
-    }
+    capItem.recalculatedPosition = [];
+    capItem.matchedPlanogramProduct = undefined;
+    cIndex++;
   }
 
   // Handle remaining unmatched captured items
