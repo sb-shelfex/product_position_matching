@@ -35,26 +35,26 @@ import { ci_20 } from "./test20/captured_image";
 import { pi_20 } from "./test20/planogram_image";
 import { result_20 } from "./test20/result"
 export const tests = [
-  // {
-  //   pi: pi_1,
-  //   ci: ci_1,
-  //   reuslt: result_1,
-  // },
-  // {
-  //   pi: pi_2,
-  //   ci: ci_2,
-  //   reuslt: result_2,
-  // },
-  // {
-  //   pi: pi_3,
-  //   ci: ci_3,
-  //   reuslt: result_3,
-  // },
-  // {
-  //   pi: pi_4,
-  //   ci: ci_4,
-  //   reuslt: result_4,
-  // },
+  {
+    pi: pi_1,
+    ci: ci_1,
+    reuslt: result_1,
+  },
+  {
+    pi: pi_2,
+    ci: ci_2,
+    reuslt: result_2,
+  },
+  {
+    pi: pi_3,
+    ci: ci_3,
+    reuslt: result_3,
+  },
+  {
+    pi: pi_4,
+    ci: ci_4,
+    reuslt: result_4,
+  },
   // {
   //   pi: pi_13,
   //   ci: ci_13,
