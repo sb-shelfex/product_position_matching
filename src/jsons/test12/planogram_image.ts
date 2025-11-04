@@ -1,6 +1,6 @@
 //Planogram data
 
-export const pi_3= {
+export const pi_13= {
   products: [
     {
       product: "STING_RED_250ML_PET",

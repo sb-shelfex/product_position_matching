@@ -215,6 +215,10 @@
 // }
 
 //Almost same not in Y-axis code
+
+
+
+
 export function recalculateCapturedPositions(
   planogram: {
     skuCode: string;

@@ -12,6 +12,9 @@ import { result_3 } from "./jsons/test3/result";
 import { pi_4 } from "./jsons/test4/planogram_image";
 import { ci_4 } from "./jsons/test4/captured_image";
 import { result_4 } from "./jsons/test4/result";
+import { pi_13 } from "./jsons/test13/planogram_image";
+import { ci_13 } from "./jsons/test13/captured_image";
+import { result_13 } from "./jsons/test13/result";
 
 const app = express();
 const PORT = 4000;
@@ -64,23 +67,23 @@ async function computeOne(piData: any, ciData: any, result: any, testNo: number 
     if (scalingFactors.length > 0) {
       // Compute cumulative scaling factor
       const overallScalingFactor = getRepresentativeScalingFactor(scalingFactors);
-      // console.log("overallScalingFactor ", overallScalingFactor);
+      console.log("overallScalingFactor ", overallScalingFactor);
 
       // According to scalling facor find widths of all products in captured image
       const scaledWidthsOfCapturedProducts = getScaledWidthsBySku(ciProducts, overallScalingFactor);
-      // console.log("scaledWidthsOfCapturedProducts", scaledWidthsOfCapturedProducts);
+      console.log("scaledWidthsOfCapturedProducts", scaledWidthsOfCapturedProducts);
 
       // find widths of all products in planogram
       const widthOfPlanogramProducts = getPlanogramWidths(piProducts);
-      // console.log("widthOfPlanogramProducts", widthOfPlanogramProducts);
+      console.log("widthOfPlanogramProducts", widthOfPlanogramProducts);
 
       const totalPlanogramWidth = widthOfPlanogramProducts.reduce((a, b) => a + b.width, 0);
       const totalCapturedWidth = scaledWidthsOfCapturedProducts.reduce((a, b) => a + b.comparableWidth, 0);
-      // console.log({ totalPlanogramWidth, totalCapturedWidth });
+      console.log({ totalPlanogramWidth, totalCapturedWidth });
 
       // Recalculate positions for captured image
       const capturedProductsWithNewPositions = recalculateCapturedPositions(widthOfPlanogramProducts, scaledWidthsOfCapturedProducts);
-      // console.log("capturedProductsWithNewPositions", capturedProductsWithNewPositions);
+      console.log("capturedProductsWithNewPositions", capturedProductsWithNewPositions);
 
       // Match captured products positions to planogram
       const productPositionMatchingResult = matchProductsInCapturedToPlanogram(capturedProductsWithNewPositions, widthOfPlanogramProducts);
@@ -88,7 +91,7 @@ async function computeOne(piData: any, ciData: any, result: any, testNo: number 
 
       // compare matching result
       const matchingResult = compareResult(result, productPositionMatchingResult, testNo);
-      // console.log("matchingResult", matchingResult);
+      console.log("matchingResult", matchingResult);
 
       return matchingResult;
     }
@@ -123,4 +126,4 @@ async function computeAll() {
 
 computeAll();
 
-// computeOne(pi_4, ci_4, result_4, 0);
+// computeOne(pi_13, ci_13, result_13, 13);

@@ -9,30 +9,30 @@ export const result_13 = [
   },
   {
     position: 3,
-    matchingStatus: "multi_slot",
+    matchingStatus: "matched",
   },
   {
     position: 4,
-    matchingStatus: "multi_slot",
+    matchingStatus: "matched",
   },
   {
     position: 5,
-    matchingStatus: "sku_mismatch",
+    matchingStatus: "matched",
   },
   {
     position: 6,
-    matchingStatus: "invalid_position",
+    matchingStatus: "matched",
   },
   {
     position: 7,
-    matchingStatus: "invalid_position",
+    matchingStatus: "matched",
   },
   {
     position: 8,
-    matchingStatus: "invalid_position",
+    matchingStatus: "matched, invalid_position", 
   },
   {
     position: 9,
-    matchingStatus: "invalid_position",
+    matchingStatus: "matched , invalid_position",
   }
 ];
