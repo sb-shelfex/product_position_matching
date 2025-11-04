@@ -1,7 +1,7 @@
 import express from "express";
 import { compareResult, getBoundingBoxesBySku, getMatchingProductSkuCodes, getPlanogramWidths, getScaledWidthsBySku } from "./helper/helper";
 import { getRepresentativeScalingFactor, getScalingFactors } from "./helper/getClusterData";
-import { matchProductsInCapturedToPlanogram, recalculateCapturedPositions } from "./helper/comparePositions";
+import { matchProductsInCapturedToPlanogram, matchStackedProductsInCapturedToPlanogram, recalculateCapturedPositions } from "./helper/comparePositions";
 import { tests } from "./jsons";
 import { pi_2 } from "./jsons/test2/planogram_image";
 import { ci_2 } from "./jsons/test2/captured_image";
@@ -91,7 +91,11 @@ async function computeOne(piData: any, ciData: any, result: any, testNo: number 
 
       // Match captured products positions to planogram
       const productPositionMatchingResult = matchProductsInCapturedToPlanogram(capturedProductsWithNewPositions, widthOfPlanogramProducts);
-      // console.log("productPositionMatchingResult", productPositionMatchingResult);
+      console.log("productPositionMatchingResult", productPositionMatchingResult);
+
+      // next match stacked Products
+      const stackedProductsMatchingResult = matchStackedProductsInCapturedToPlanogram(productPositionMatchingResult);
+      console.log("stackedProductsMatchingResult", stackedProductsMatchingResult);
 
       // compare matching result
       const matchingResult = compareResult(result, productPositionMatchingResult, testNo);
@@ -128,6 +132,6 @@ async function computeAll() {
   }
 }
 
-computeAll();
+// computeAll();
 
-// computeOne(pi_5, ci_5, result_5, 0);
+computeOne(pi_5, ci_5, result_5, 0);

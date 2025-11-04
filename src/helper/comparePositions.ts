@@ -24,6 +24,8 @@
 //   const MULTI_SLOT_THRESHOLD = 1.4;
 //   const MIN_OVERLAP_RATIO = 0.35;
 
+import { compareStacks, sortStackTopToBottom } from "./helper";
+
 //   // Validation
 //   if (!planogram.length || !captured.length) return captured;
 
@@ -215,9 +217,6 @@
 // }
 
 //Almost same not in Y-axis code
-
-
-
 
 export function recalculateCapturedPositions(
   planogram: {
@@ -505,4 +504,71 @@ export function matchProductsInCapturedToPlanogram(capturedImage: any[], planogr
   });
 
   return matchedResults;
+}
+
+export function matchStackedProductsInCapturedToPlanogram(productPositionMatchingResult: any[]) {
+  if (!Array.isArray(productPositionMatchingResult) || productPositionMatchingResult.length === 0) {
+    return productPositionMatchingResult;
+  }
+
+  const updated = productPositionMatchingResult.map((item) => {
+    const capStackSize = item.stackSize ? item.stackSize - 1 : item.stacked?.length ?? 0;
+
+    // 1) No stack on captured → nothing to do
+    if (!capStackSize || capStackSize <= 0) {
+      return {
+        ...item,
+        stackMatchingStatus: "not_applicable",
+        stackMatchSummary: { comparedPairs: 0, matchedPairs: 0, extraCaptured: 0, missingInCaptured: 0, accuracy: 1 },
+        stackMatches: [],
+      };
+    }
+
+    // 2) Must have a single planogram product to compare against
+    const planRef = item.matchedPlanogramProduct;
+    if (!planRef) {
+      return { ...item, stackMatchingStatus: "no_planogram_match" };
+    }
+    if (Array.isArray(planRef)) {
+      // ambiguous (multi-slot); you could refine by picking closest X-center,
+      // but per requirement we'll mark as ambiguous.
+      return { ...item, stackMatchingStatus: "multi_slot_ambiguous" };
+    }
+
+    const planStackSize = planRef.stackSize ?? planRef.stacked?.length ?? 0;
+    const capturedStack = sortStackTopToBottom(item.stacked ?? []);
+    const planogramStack = sortStackTopToBottom(planRef.stacked ?? []);
+
+    // 3) Planogram has no stack → all unmatched
+    if (!planStackSize || planStackSize <= 0 || planogramStack.length === 0) {
+      return {
+        ...item,
+        stackMatchingStatus: "planogram_no_stack",
+        stackMatchSummary: {
+          comparedPairs: 0,
+          matchedPairs: 0,
+          extraCaptured: capturedStack.length,
+          missingInCaptured: 0,
+          accuracy: 0,
+        },
+        stackMatches: [],
+      };
+    }
+
+    // 4) Compare stacks one by one (top→bottom)
+    const { overall, matches, summary } = compareStacks(capturedStack, planogramStack);
+
+    return {
+      ...item,
+      stackMatchingStatus: overall,
+      // stackMatches: matches,
+      // stackMatchSummary: summary,
+    };
+  });
+
+  return updated;
+  // find products with stack size > 0
+  // if stack size is > 1, then check if its matched planogram product has the stack size >0 (if not then mark all the stacked products as unmatched)
+  // if its matched planogram product has the stack size >0 then sort the products in stacked according to y position, for both own stacked and matched planogram product stacked,
+  //  then go for matching skucode one by one
 }

@@ -67,6 +67,8 @@ export function getScaledWidthsBySku(captured: any[], overallScalingFactor: numb
         originalWidth: width,
         comparableWidth,
         boundingBox: box,
+        stackSize: p.stackSize,
+        stacked: p.stacked,
       };
     });
 
@@ -92,6 +94,8 @@ export function getPlanogramWidths(planogram: any[]) {
         position: p.Position || null,
         width,
         boundingBox: box,
+        stackSize: p.stackSize,
+        stacked: p.stacked,
       };
     });
 
@@ -131,4 +135,68 @@ export function compareResult(preDefinedResult: any[], calculatedResult: any[], 
   };
 
   return { comparison, analytics };
+}
+
+function centerY(box: any): number {
+  if (!box?.length) return 0;
+  const ys = box.map((p: any) => p[1]);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  return (minY + maxY) / 2;
+}
+
+export function sortStackTopToBottom<T extends { boundingBox: any }>(arr: T[]): T[] {
+  return [...arr].sort((a, b) => centerY(a.boundingBox) - centerY(b.boundingBox));
+}
+
+export function compareStacks(capturedStack: any[], planogramStack: any[]) {
+  const minLen = Math.min(capturedStack.length, planogramStack.length);
+  const matches: any = [];
+
+  let matchedPairs = 0;
+
+  for (let i = 0; i < minLen; i++) {
+    const c = capturedStack[i];
+    const p = planogramStack[i];
+    const ok = c.skuCode === p.skuCode;
+
+    matches.push({
+      capturedIndex: i,
+      planogramIndex: i,
+      capturedSku: c.skuCode,
+      planogramSku: p.skuCode,
+      status: ok ? "matched" : "sku_mismatch",
+    });
+
+    if (ok) matchedPairs++;
+  }
+
+  const extraCaptured = Math.max(0, capturedStack.length - planogramStack.length);
+  const missingInCaptured = Math.max(0, planogramStack.length - capturedStack.length);
+
+  const comparedPairs = minLen;
+  const denom = comparedPairs + extraCaptured + missingInCaptured || 1;
+  const accuracy = matchedPairs / denom;
+
+  // decide overall status
+  let overall: any;
+  if (matchedPairs === comparedPairs && extraCaptured === 0 && missingInCaptured === 0) {
+    overall = "matched";
+  } else if (matchedPairs > 0) {
+    overall = "partial_match";
+  } else {
+    overall = "mismatch";
+  }
+
+  return {
+    overall,
+    matches,
+    summary: {
+      comparedPairs,
+      matchedPairs,
+      extraCaptured,
+      missingInCaptured,
+      accuracy,
+    },
+  };
 }
