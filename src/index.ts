@@ -75,7 +75,7 @@ async function computeOne(piData: any, ciData: any, result: any, testNo: number 
 
       // find widths of all products in planogram
       const widthOfPlanogramProducts = getPlanogramWidths(piProducts);
-      console.log("widthOfPlanogramProducts", widthOfPlanogramProducts);
+      // console.log("widthOfPlanogramProducts", widthOfPlanogramProducts);
 
       const totalPlanogramWidth = widthOfPlanogramProducts.reduce((a, b) => a + b.width, 0);
       const totalCapturedWidth = scaledWidthsOfCapturedProducts.reduce((a, b) => a + b.comparableWidth, 0);

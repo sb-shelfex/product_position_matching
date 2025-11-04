@@ -331,32 +331,32 @@ export function recalculateCapturedPositions(
 
     // console.log(`-- Case 2B Checking ${widthRatio} <= ${1 / MULTI_SLOT_THRESHOLD} : ${widthRatio <= 1 / MULTI_SLOT_THRESHOLD}`);
     // CASE 2B (opposite): Planogram slot is much wider → group multiple captured items
-    if (widthRatio <= 1 / MULTI_SLOT_THRESHOLD) {
-      // console.log("used case 2B (Planogram slot is much wider → group multiple captured items)");
-      let remainingPlanWidth = planWidth;
-      const groupedCaptured: typeof updatedCaptured = [];
-      let tempCIndex = cIndex;
+    // if (widthRatio <= 1 / MULTI_SLOT_THRESHOLD) {
+    //   // console.log("used case 2B (Planogram slot is much wider → group multiple captured items)");
+    //   let remainingPlanWidth = planWidth;
+    //   const groupedCaptured: typeof updatedCaptured = [];
+    //   let tempCIndex = cIndex;
 
-      while (tempCIndex < updatedCaptured.length && remainingPlanWidth >= updatedCaptured[tempCIndex].comparableWidth * MIN_OVERLAP_RATIO) {
-        groupedCaptured.push(updatedCaptured[tempCIndex]);
-        remainingPlanWidth -= updatedCaptured[tempCIndex].comparableWidth;
-        tempCIndex++;
-      }
+    //   while (tempCIndex < updatedCaptured.length && remainingPlanWidth >= updatedCaptured[tempCIndex].comparableWidth * MIN_OVERLAP_RATIO) {
+    //     groupedCaptured.push(updatedCaptured[tempCIndex]);
+    //     remainingPlanWidth -= updatedCaptured[tempCIndex].comparableWidth;
+    //     tempCIndex++;
+    //   }
 
-      if (groupedCaptured.length > 0) {
-        // assign fractional positions for each captured within this planogram slot
-        groupedCaptured.forEach((item, idx) => {
-          // 1st captured becomes pos + 0.01, second pos + 0.02 etc.
-          const fractionalPos = Number(planItem.position) + (idx + 1) / 100;
-          item.recalculatedPosition = [parseFloat(fractionalPos.toFixed(2))];
-          item.matchedPlanogramProduct = { ...planItem };
-        });
+    //   if (groupedCaptured.length > 0) {
+    //     // assign fractional positions for each captured within this planogram slot
+    //     groupedCaptured.forEach((item, idx) => {
+    //       // 1st captured becomes pos + 0.01, second pos + 0.02 etc.
+    //       const fractionalPos = Number(planItem.position) + (idx + 1) / 100;
+    //       item.recalculatedPosition = [parseFloat(fractionalPos.toFixed(2))];
+    //       item.matchedPlanogramProduct = { ...planItem };
+    //     });
 
-        pIndex++;
-        cIndex = tempCIndex;
-        continue;
-      }
-    }
+    //     pIndex++;
+    //     cIndex = tempCIndex;
+    //     continue;
+    //   }
+    // }
 
     // console.log(`-- Case 3 Checking: ${capItem.comparableWidth} < ${planItem.width * (1 - WIDTH_TOLERANCE_PERCENT / 100)}: ${capItem.comparableWidth < planItem.width * (1 - WIDTH_TOLERANCE_PERCENT / 100)}`);
     // CASE 3: Multiple captured items fill one planogram slot

@@ -125,8 +125,9 @@ export function compareResult(preDefinedResult: any[], calculatedResult: any[], 
 
   const analytics = {
     testNo,
-    totalCompared: Math.max(preDefinedResult.length, calculatedResult.length),
-    totalFullyMatched: matchedCount,
+    compared: Math.max(preDefinedResult.length, calculatedResult.length),
+    matched: matchedCount,
+    result: (matchedCount / Math.max(preDefinedResult.length, calculatedResult.length)) * 100,
   };
 
   return { comparison, analytics };
