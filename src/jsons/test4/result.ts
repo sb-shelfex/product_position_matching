@@ -25,10 +25,10 @@ export const result_4 = [
   },
   {
     position: 7,
-    matchingStatus: "matched",
+    matchingStatus: "invalid_position",
   },
   {
     position: 8,
-    matchingStatus: "matched",
+    matchingStatus: "invalid_position",
   },
 ];

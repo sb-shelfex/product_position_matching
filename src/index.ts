@@ -64,7 +64,7 @@ async function computeOne(piData: any, ciData: any, result: any, testNo: number 
     if (scalingFactors.length > 0) {
       // Compute cumulative scaling factor
       const overallScalingFactor = getRepresentativeScalingFactor(scalingFactors);
-      console.log("overallScalingFactor ", overallScalingFactor);
+      // console.log("overallScalingFactor ", overallScalingFactor);
 
       // According to scalling facor find widths of all products in captured image
       const scaledWidthsOfCapturedProducts = getScaledWidthsBySku(ciProducts, overallScalingFactor);
@@ -80,7 +80,7 @@ async function computeOne(piData: any, ciData: any, result: any, testNo: number 
 
       // Recalculate positions for captured image
       const capturedProductsWithNewPositions = recalculateCapturedPositions(widthOfPlanogramProducts, scaledWidthsOfCapturedProducts);
-      console.log("capturedProductsWithNewPositions", capturedProductsWithNewPositions);
+      // console.log("capturedProductsWithNewPositions", capturedProductsWithNewPositions);
 
       // Match captured products positions to planogram
       const productPositionMatchingResult = matchProductsInCapturedToPlanogram(capturedProductsWithNewPositions, widthOfPlanogramProducts);
@@ -121,6 +121,6 @@ async function computeAll() {
   }
 }
 
-// computeAll();
+computeAll();
 
-computeOne(pi_4, ci_4, result_4, 0);
+// computeOne(pi_4, ci_4, result_4, 0);

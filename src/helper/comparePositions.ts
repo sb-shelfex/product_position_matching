@@ -278,12 +278,12 @@ export function recalculateCapturedPositions(
     const widthRatio = capWidth / (planWidth || 1);
     const widthDiffPercent = (Math.abs(capWidth - planWidth) / (planWidth || 1)) * 100;
 
-    console.log(`checking for - cip: ${cIndex} and pip: ${pIndex}, widthDiffPercent: ${widthDiffPercent}, widthRatio: ${widthRatio}`);
+    // console.log(`checking for - cip: ${cIndex} and pip: ${pIndex}, widthDiffPercent: ${widthDiffPercent}, widthRatio: ${widthRatio}`);
 
-    console.log(`-- Case 1 Checking: ${widthDiffPercent} <= ${WIDTH_TOLERANCE_PERCENT}: ${widthDiffPercent <= WIDTH_TOLERANCE_PERCENT} && ${widthRatio} < ${MULTI_SLOT_THRESHOLD}: ${widthRatio < MULTI_SLOT_THRESHOLD}`);
-    // CASE 1: Single-slot match (within tolerance)
+    // console.log(`-- Case 1A Checking: ${widthDiffPercent} <= ${WIDTH_TOLERANCE_PERCENT}: ${widthDiffPercent <= WIDTH_TOLERANCE_PERCENT} && ${widthRatio} < ${MULTI_SLOT_THRESHOLD}: ${widthRatio < MULTI_SLOT_THRESHOLD}`);
+    // CASE 1A: Single-slot match (within tolerance)
     if (widthDiffPercent <= WIDTH_TOLERANCE_PERCENT && widthRatio < MULTI_SLOT_THRESHOLD) {
-      console.log("used case 1");      
+      // console.log("used case 1A (Single-slot match (within tolerance)");
       capItem.recalculatedPosition = [Number(planItem.position)];
       capItem.matchedPlanogramProduct = { ...planItem };
       pIndex++;
@@ -291,10 +291,21 @@ export function recalculateCapturedPositions(
       continue;
     }
 
-    console.log(`-- Case 2A Checking: ${widthRatio} >= ${MULTI_SLOT_THRESHOLD}: ${widthRatio >= MULTI_SLOT_THRESHOLD}`);
+    // console.log(`-- Case 1B Checking: ${widthDiffPercent} > ${WIDTH_TOLERANCE_PERCENT}: ${widthDiffPercent > WIDTH_TOLERANCE_PERCENT} && ${widthRatio} < ${MULTI_SLOT_THRESHOLD}: ${widthRatio < MULTI_SLOT_THRESHOLD}`);
+    // CASE 1B: Slightly wider captured single-slot (within reasonable range but < MULTI_SLOT_THRESHOLD)
+    if (widthDiffPercent > WIDTH_TOLERANCE_PERCENT && widthRatio < MULTI_SLOT_THRESHOLD) {
+      // console.log("used case 1B (Slightly wider single-slot)");
+      capItem.recalculatedPosition = [Number(planItem.position)];
+      capItem.matchedPlanogramProduct = { ...planItem };
+      pIndex++;
+      cIndex++;
+      continue;
+    }
+
+    // console.log(`-- Case 2A Checking: ${widthRatio} >= ${MULTI_SLOT_THRESHOLD}: ${widthRatio >= MULTI_SLOT_THRESHOLD}`);
     // CASE 2A: Captured is significantly wider → may span multiple planogram slots
     if (widthRatio >= MULTI_SLOT_THRESHOLD) {
-      console.log("used case 2A");      
+      // console.log("used case 2A (Captured is significantly wider → may span multiple planogram slots)");
       let remainingWidth = capItem.comparableWidth;
       const coveredPositions: number[] = [];
       let tempPIndex = pIndex;
@@ -314,10 +325,10 @@ export function recalculateCapturedPositions(
       }
     }
 
-    console.log(`-- Case 2B Checking ${widthRatio} <= ${1 / MULTI_SLOT_THRESHOLD} : ${widthRatio <= 1 / MULTI_SLOT_THRESHOLD}`);
+    // console.log(`-- Case 2B Checking ${widthRatio} <= ${1 / MULTI_SLOT_THRESHOLD} : ${widthRatio <= 1 / MULTI_SLOT_THRESHOLD}`);
     // CASE 2B (opposite): Planogram slot is much wider → group multiple captured items
     if (widthRatio <= 1 / MULTI_SLOT_THRESHOLD) {
-      console.log("used case 2B");      
+      // console.log("used case 2B (Planogram slot is much wider → group multiple captured items)");
       let remainingPlanWidth = planWidth;
       const groupedCaptured: typeof updatedCaptured = [];
       let tempCIndex = cIndex;
@@ -343,10 +354,10 @@ export function recalculateCapturedPositions(
       }
     }
 
-    console.log(`-- Case 3 Checking: ${capItem.comparableWidth} < ${planItem.width * (1 - WIDTH_TOLERANCE_PERCENT / 100)}: ${capItem.comparableWidth < planItem.width * (1 - WIDTH_TOLERANCE_PERCENT / 100)}`);
+    // console.log(`-- Case 3 Checking: ${capItem.comparableWidth} < ${planItem.width * (1 - WIDTH_TOLERANCE_PERCENT / 100)}: ${capItem.comparableWidth < planItem.width * (1 - WIDTH_TOLERANCE_PERCENT / 100)}`);
     // CASE 3: Multiple captured items fill one planogram slot
     if (capItem.comparableWidth < planItem.width * (1 - WIDTH_TOLERANCE_PERCENT / 100)) {
-      console.log("used case 3");      
+      // console.log("used case 3 (Multiple captured items fill one planogram slot)");
       const groupedCaptured: typeof updatedCaptured = [];
       let accumulatedWidth = 0;
       let tempCIndex = cIndex;
@@ -376,10 +387,10 @@ export function recalculateCapturedPositions(
       continue;
     }
 
-    console.log(`-- Case 4 Checking: ${widthDiffPercent} <= ${WIDTH_TOLERANCE_PERCENT}: ${widthDiffPercent <= WIDTH_TOLERANCE_PERCENT * 1.25}`);
+    // console.log(`-- Case 4 Checking: ${widthDiffPercent} <= ${WIDTH_TOLERANCE_PERCENT}: ${widthDiffPercent <= WIDTH_TOLERANCE_PERCENT * 1.25}`);
     // CASE 4: Slightly extended tolerance (fallback within 1.25 * tolerance)
     if (widthDiffPercent <= WIDTH_TOLERANCE_PERCENT * 1.25) {
-      console.log("used case 4");      
+      // console.log("used case 4 (Slightly extended tolerance)");
       capItem.recalculatedPosition = [Number(planItem.position)];
       capItem.matchedPlanogramProduct = { ...planItem };
       pIndex++;
@@ -387,10 +398,10 @@ export function recalculateCapturedPositions(
       continue;
     }
 
-    console.log(`-- Case 5 Checking: ${pIndex} === ${sortedPlanogram.length - 1} || ${cIndex} === ${updatedCaptured.length - 1}: ${pIndex === sortedPlanogram.length - 1 || cIndex === updatedCaptured.length - 1}`);
+    // console.log(`-- Case 5 Checking: ${pIndex} === ${sortedPlanogram.length - 1} || ${cIndex} === ${updatedCaptured.length - 1}: ${pIndex === sortedPlanogram.length - 1 || cIndex === updatedCaptured.length - 1}`);
     // CASE 5: If this is last planogram item OR last captured item, assign best-effort integer position
     if (pIndex === sortedPlanogram.length - 1 || cIndex === updatedCaptured.length - 1) {
-      console.log("used case 5");      
+      // console.log("used case 5 (Best-effort integer position)");
       capItem.recalculatedPosition = [Number(planItem.position)];
       capItem.matchedPlanogramProduct = { ...planItem };
       pIndex++;
