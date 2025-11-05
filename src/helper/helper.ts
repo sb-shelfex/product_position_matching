@@ -158,17 +158,25 @@ export function compareStacks(capturedStack: any[], planogramStack: any[]) {
   for (let i = 0; i < minLen; i++) {
     const c = capturedStack[i];
     const p = planogramStack[i];
-    const ok = c.skuCode === p.skuCode;
+    const isMatch = c.skuCode === p.skuCode;
 
+    // push match result summary
     matches.push({
       capturedIndex: i,
       planogramIndex: i,
       capturedSku: c.skuCode,
       planogramSku: p.skuCode,
-      status: ok ? "matched" : "sku_mismatch",
+      status: isMatch ? "matched" : "sku_mismatch",
     });
 
-    if (ok) matchedPairs++;
+    // 🔄 also embed the relationship directly into the captured stack item
+    capturedStack[i] = {
+      ...c,
+      matchedPlanogramProduct: p,
+      stackMatchingStatus: isMatch ? "matched" : "sku_mismatch",
+    };
+
+    if (isMatch) matchedPairs++;
   }
 
   const extraCaptured = Math.max(0, capturedStack.length - planogramStack.length);
@@ -186,6 +194,17 @@ export function compareStacks(capturedStack: any[], planogramStack: any[]) {
     overall = "partial_match";
   } else {
     overall = "mismatch";
+  }
+
+  // 🔁 Mark any extra captured stack items (no planogram counterpart)
+  if (extraCaptured > 0) {
+    for (let i = minLen; i < capturedStack.length; i++) {
+      capturedStack[i] = {
+        ...capturedStack[i],
+        matchedPlanogramProduct: undefined,
+        stackMatchingStatus: "extra_captured",
+      };
+    }
   }
 
   return {

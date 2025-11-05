@@ -544,14 +544,6 @@ export function matchStackedProductsInCapturedToPlanogram(productPositionMatchin
       return {
         ...item,
         stackMatchingStatus: "planogram_no_stack",
-        stackMatchSummary: {
-          comparedPairs: 0,
-          matchedPairs: 0,
-          extraCaptured: capturedStack.length,
-          missingInCaptured: 0,
-          accuracy: 0,
-        },
-        stackMatches: [],
       };
     }
 
@@ -561,6 +553,7 @@ export function matchStackedProductsInCapturedToPlanogram(productPositionMatchin
     return {
       ...item,
       stackMatchingStatus: overall,
+      stacked: capturedStack,
       // stackMatches: matches,
       // stackMatchSummary: summary,
     };
