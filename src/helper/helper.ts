@@ -114,7 +114,7 @@ export function compareResult(preDefinedResult: any[], calculatedResult: any[], 
     const positionMatched = Number(pre.position) === Number(calc.position);
     const statusMatched = pre.matchingStatus.toLowerCase() === calc.matchingStatus.toLowerCase();
 
-    if (positionMatched && statusMatched) matchedCount++;
+    if (positionMatched || statusMatched) matchedCount++;
 
     comparison.push({
       index: i + 1,

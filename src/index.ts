@@ -20,6 +20,9 @@ import { ci_15 } from "./jsons/test15/captured_image";
 import { ci_5 } from "./jsons/test5/captured_image";
 import { result_5 } from "./jsons/test5/result";
 import { computeRepresentativeScaleFromProducts } from "./helper/helper2";
+import { pi_6 } from "./jsons/test6/planogram_image";
+import { ci_6 } from "./jsons/test6/captured_image";
+import { result_6 } from "./jsons/test6/result";
 
 const app = express();
 const PORT = 4000;
@@ -97,19 +100,23 @@ async function computeOne(piData: any, ciData: any, result: any, testNo: number 
     let overallScalingFactor: number | null = null;
 
     if (osfmp == null && osfnmp == null) {
+      const stackedProductsMatchingResult = matchStackedProductsInCapturedToPlanogram(
+        ciProducts.map((p: any) => ({
+          ...p,
+          recalculatedPosition: [],
+          matchingStatus: "no_scale_found",
+        }))
+      );
+      // console.log("stackedProductsMatchingResult", stackedProductsMatchingResult);
+
+      
+    const matchingResult = compareResult(result, stackedProductsMatchingResult, testNo);
+    // console.log("matchingResult", matchingResult);
+    
       // ❌ No scaling possible from both methods
       return {
-        analytics: {
-          note: "no_scaling_factor_found",
-          ciProducts,
-        },
-        matching: matchStackedProductsInCapturedToPlanogram(
-          ciProducts.map((p: any) => ({
-            ...p,
-            recalculatedPosition: [],
-            matchingStatus: "no_scale",
-          }))
-        ),
+        analytics: matchingResult.analytics,
+        matching: stackedProductsMatchingResult,
       };
     }
 
@@ -120,12 +127,12 @@ async function computeOne(piData: any, ciData: any, result: any, testNo: number 
     } else if (osfmp != null && osfnmp != null) {
       // BOTH exist → compare them
       const diffPercent = (Math.abs(osfmp - osfnmp) / osfmp) * 100;
-      console.log("diffPercent", diffPercent);
+      // console.log("diffPercent", diffPercent);
 
       if (diffPercent <= 15) {
         // Close enough → matched products scaling wins
         // overallScalingFactor = osfnmp;
-        overallScalingFactor = (osfmp +osfnmp)/2
+        overallScalingFactor = (osfmp + osfnmp) / 2;
       } else {
         // Far difference → STILL go with matched scaling
         overallScalingFactor = osfnmp;

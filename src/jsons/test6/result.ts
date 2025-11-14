@@ -1,38 +1,38 @@
-export const result_3 = [
+export const result_6 = [
   {
     position: 1,
-    matchingStatus: "multi_slot",
+    matchingStatus: "no_scale_found",
   },
   {
     position: 2,
-    matchingStatus: "multi_slot",
+    matchingStatus: "no_scale_found",
   },
   {
     position: 3,
-    matchingStatus: "multi_slot",
+    matchingStatus: "no_scale_found",
   },
   {
     position: 4,
-    matchingStatus: "multi_slot",
+    matchingStatus: "no_scale_found",
   },
   {
     position: 5,
-    matchingStatus: "sku_mismatch",
+    matchingStatus: "no_scale_found",
   },
   {
     position: 6,
-    matchingStatus: "invalid_position",
+    matchingStatus: "no_scale_found",
   },
   {
     position: 7,
-    matchingStatus: "invalid_position",
+    matchingStatus: "no_scale_found",
   },
   {
     position: 8,
-    matchingStatus: "invalid_position",
+    matchingStatus: "no_scale_found",
   },
   {
     position: 9,
-    matchingStatus: "invalid_position",
+    matchingStatus: "no_scale_found",
   }
 ];
