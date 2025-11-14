@@ -25,7 +25,7 @@ export const result_4 = [
   },
   {
     position: 7,
-    matchingStatus: "invalid_position",
+    matchingStatus: "sku_mismatch",
   },
   {
     position: 8,

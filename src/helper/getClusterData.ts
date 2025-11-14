@@ -1,3 +1,46 @@
+// Helper to find "representative" width
+export function findRepresentativeWidth(widths: number[]): number {
+  const STD_DEV_MULTIPLIER = 1.5; // Determines how far from mean to treat as outlier
+  const MODE_CLUSTER_TOLERANCE = 2; // Width difference allowed when averaging around mode
+  const ROUNDING_PRECISION = 0.5; // Width rounding step when finding mode (0.5 units)
+  if (!widths || widths.length === 0) return 0;
+
+  // Sort widths for stable processing
+  const sorted = [...widths].sort((a, b) => a - b);
+
+  // Compute mean and standard deviation
+  const mean = sorted.reduce((sum, w) => sum + w, 0) / sorted.length;
+  const variance = sorted.reduce((sum, w) => sum + Math.pow(w - mean, 2), 0) / sorted.length;
+  const stdDev = Math.sqrt(variance);
+
+  // Filter out outliers beyond mean ± STD_DEV_MULTIPLIER * stdDev
+  const filtered = sorted.filter((w) => w >= mean - STD_DEV_MULTIPLIER * stdDev && w <= mean + STD_DEV_MULTIPLIER * stdDev);
+
+  if (filtered.length === 0) return mean;
+
+  // Round to nearest ROUNDING_PRECISION (e.g., 0.5) and find most frequent width
+  const freqMap = new Map<number, number>();
+  filtered.forEach((w) => {
+    const rounded = Math.round(w / ROUNDING_PRECISION) * ROUNDING_PRECISION;
+    freqMap.set(rounded, (freqMap.get(rounded) || 0) + 1);
+  });
+
+  let modeWidth = 0;
+  let maxCount = 0;
+  freqMap.forEach((count, width) => {
+    if (count > maxCount) {
+      maxCount = count;
+      modeWidth = width;
+    }
+  });
+
+  // Average all values near that mode width (within ±MODE_CLUSTER_TOLERANCE)
+  const cluster = filtered.filter((w) => Math.abs(w - modeWidth) <= MODE_CLUSTER_TOLERANCE);
+  const avgCluster = cluster.reduce((sum, w) => sum + w, 0) / cluster.length;
+
+  return avgCluster;
+}
+
 /**
  * Given bounding box data (with widths) for each SKU,
  * calculate the scaling factor between captured and planogram widths.
@@ -6,50 +49,7 @@
  */
 export function getScalingFactors(boundingBoxData: any[]) {
   // 🔧 Tunable Parameters (Thresholds)
-  const STD_DEV_MULTIPLIER = 1.5; // Determines how far from mean to treat as outlier
-  const MODE_CLUSTER_TOLERANCE = 2; // Width difference allowed when averaging around mode
-  const ROUNDING_PRECISION = 0.5; // Width rounding step when finding mode (0.5 units)
   const DECIMAL_PRECISION = 3; // Rounding precision for final scaling factor
-
-  // Helper to find "representative" width
-  function findRepresentativeWidth(widths: number[]): number {
-    if (!widths || widths.length === 0) return 0;
-
-    // Sort widths for stable processing
-    const sorted = [...widths].sort((a, b) => a - b);
-
-    // Compute mean and standard deviation
-    const mean = sorted.reduce((sum, w) => sum + w, 0) / sorted.length;
-    const variance = sorted.reduce((sum, w) => sum + Math.pow(w - mean, 2), 0) / sorted.length;
-    const stdDev = Math.sqrt(variance);
-
-    // Filter out outliers beyond mean ± STD_DEV_MULTIPLIER * stdDev
-    const filtered = sorted.filter((w) => w >= mean - STD_DEV_MULTIPLIER * stdDev && w <= mean + STD_DEV_MULTIPLIER * stdDev);
-
-    if (filtered.length === 0) return mean;
-
-    // Round to nearest ROUNDING_PRECISION (e.g., 0.5) and find most frequent width
-    const freqMap = new Map<number, number>();
-    filtered.forEach((w) => {
-      const rounded = Math.round(w / ROUNDING_PRECISION) * ROUNDING_PRECISION;
-      freqMap.set(rounded, (freqMap.get(rounded) || 0) + 1);
-    });
-
-    let modeWidth = 0;
-    let maxCount = 0;
-    freqMap.forEach((count, width) => {
-      if (count > maxCount) {
-        maxCount = count;
-        modeWidth = width;
-      }
-    });
-
-    // Average all values near that mode width (within ±MODE_CLUSTER_TOLERANCE)
-    const cluster = filtered.filter((w) => Math.abs(w - modeWidth) <= MODE_CLUSTER_TOLERANCE);
-    const avgCluster = cluster.reduce((sum, w) => sum + w, 0) / cluster.length;
-
-    return avgCluster;
-  }
 
   // Compute scaling factors
   const results = boundingBoxData.map((item) => {
@@ -168,9 +168,7 @@ export function getRepresentativeScalingFactor(results: any[]) {
   const DECIMAL_PRECISION = 3;
 
   // Extract valid numeric scaling factors
-  const scalingFactors = results
-    .map((r) => r.scalingFactor)
-    .filter((v) => typeof v === "number" && v > 0);
+  const scalingFactors = results.map((r) => r.scalingFactor).filter((v) => typeof v === "number" && v > 0);
 
   if (scalingFactors.length === 0) return 0;
 
@@ -197,7 +195,8 @@ export function getRepresentativeScalingFactor(results: any[]) {
   });
 
   // Find mode (most frequent value)
-  let mode = 0, maxCount = 0;
+  let mode = 0,
+    maxCount = 0;
   freqMap.forEach((count, val) => {
     if (count > maxCount) {
       maxCount = count;
@@ -228,4 +227,3 @@ export function getRepresentativeScalingFactor(results: any[]) {
   const finalValue = Number(avgCluster.toFixed(DECIMAL_PRECISION));
   return isFinite(finalValue) ? finalValue : Number(mean.toFixed(DECIMAL_PRECISION));
 }
-

@@ -19,6 +19,7 @@ import { pi_5 } from "./jsons/test5/planogram_image";
 import { ci_15 } from "./jsons/test15/captured_image";
 import { ci_5 } from "./jsons/test5/captured_image";
 import { result_5 } from "./jsons/test5/result";
+import { computeRepresentativeScaleFromProducts } from "./helper/helper2";
 
 const app = express();
 const PORT = 4000;
@@ -39,6 +40,39 @@ async function computeOne(piData: any, ciData: any, result: any, testNo: number 
     // console.log("piProducts", piProducts);
     // console.log("ciProducts", ciProducts);
 
+    let osfmp: number | null = null; // overall scaling factor using MATCHED products
+    let osfnmp: number | null = null; // overall scaling factor using NON-MATCHED products
+
+    // ---------------------------------------------------------
+    // (1) Compute NON-MATCHED scaling factor (osfnmp)
+    // ---------------------------------------------------------
+    // 1) compute representative scale for captured image (measured / actual)
+    const capturedScaleInfo = await computeRepresentativeScaleFromProducts(ciProducts, {
+      minConfidence: 0.5,
+      referenceWidth: 1000,
+      source: "captured",
+    });
+
+    // 2) compute representative scale for planogram products (if planogram items have bounding boxes)
+    const planogramScaleInfo = await computeRepresentativeScaleFromProducts(piProducts, {
+      minConfidence: 0.0,
+      referenceWidth: 1000,
+      source: "planogram",
+    });
+
+    // decide final overallScalingFactor:
+    // - If planogram representative scale exists, use ratio captured/planogram
+    // - else use captured representative scale directly (this is unitless measured/original)
+    if (capturedScaleInfo.representativeScale != null && planogramScaleInfo.representativeScale != null) {
+      // ratio: if planogram scale != 1 (rare), we normalize
+      osfnmp = capturedScaleInfo.representativeScale / planogramScaleInfo.representativeScale;
+    } else if (capturedScaleInfo.representativeScale != null) {
+      osfnmp = capturedScaleInfo.representativeScale;
+    }
+
+    // ---------------------------------------------------------
+    // (2) Compute MATCHED scaling factor (osfmp)
+    // ---------------------------------------------------------
     // Get matching SKUs
     const matchingSkus = getMatchingProductSkuCodes(piProducts, ciProducts);
     // console.log(matchingSkus);
@@ -47,63 +81,97 @@ async function computeOne(piData: any, ciData: any, result: any, testNo: number 
     const boundingBoxes = getBoundingBoxesBySku(matchingSkus, piProducts, ciProducts);
     // console.dir(boundingBoxes, { depth: null });
 
-    // let boundingBoxes = [
-    //   {
-    //     sku: "shelfscan_00139",
-    //     planogram_boundingBoxes: [{ width: 54.6 }, { width: 54.9 }, { width: 55.0 }, { width: 55.0 }],
-    //     captured_boundingBoxes: [{ width: 98.5 }, { width: 99.7 }, { width: 97.0 }, { width: 95.0 }],
-    //   },
-    //   {
-    //     sku: "shelfscan_00138",
-    //     planogram_boundingBoxes: [{ width: 54.6 }, { width: 54.9 }, { width: 55.0 }, { width: 55.0 }],
-    //     captured_boundingBoxes: [{ width: 48.5 }, { width: 45.7 }, { width: 50.0 }, { width: 49.0 }],
-    //   },
-    //   {
-    //     sku: "shelfscan_00140",
-    //     planogram_boundingBoxes: [{ width: 54.6 }, { width: 54.9 }, { width: 55.0 }, { width: 55.0 }],
-    //     captured_boundingBoxes: [{ width: 99.5 }, { width: 100.7 }, { width: 98.0 }, { width: 99.0 }],
-    //   },
-    // ];
-
     // Compute scaling factors for each product
     const scalingFactors = getScalingFactors(boundingBoxes);
 
     if (scalingFactors.length > 0) {
       // Compute cumulative scaling factor
-      const overallScalingFactor = getRepresentativeScalingFactor(scalingFactors);
+      osfmp = getRepresentativeScalingFactor(scalingFactors);
       // console.log("overallScalingFactor ", overallScalingFactor);
-
-      // According to scalling facor find widths of all products in captured image
-      const scaledWidthsOfCapturedProducts = getScaledWidthsBySku(ciProducts, overallScalingFactor);
-      // console.log("scaledWidthsOfCapturedProducts", scaledWidthsOfCapturedProducts);
-
-      // find widths of all products in planogram
-      const widthOfPlanogramProducts = getPlanogramWidths(piProducts);
-      // console.log("widthOfPlanogramProducts", widthOfPlanogramProducts);
-
-      const totalPlanogramWidth = widthOfPlanogramProducts.reduce((a, b) => a + b.width, 0);
-      const totalCapturedWidth = scaledWidthsOfCapturedProducts.reduce((a, b) => a + b.comparableWidth, 0);
-      // console.log({ totalPlanogramWidth, totalCapturedWidth });
-
-      // Recalculate positions for captured image
-      const capturedProductsWithNewPositions = recalculateCapturedPositions(widthOfPlanogramProducts, scaledWidthsOfCapturedProducts);
-      // console.log("capturedProductsWithNewPositions", capturedProductsWithNewPositions);
-
-      // Match captured products positions to planogram
-      const productPositionMatchingResult = matchProductsInCapturedToPlanogram(capturedProductsWithNewPositions, widthOfPlanogramProducts);
-      // console.log("productPositionMatchingResult", productPositionMatchingResult);
-
-      // next match stacked Products
-      const stackedProductsMatchingResult = matchStackedProductsInCapturedToPlanogram(productPositionMatchingResult);
-      // console.dir(stackedProductsMatchingResult, { depth: null });
-
-      // compare matching result
-      const matchingResult = compareResult(result, productPositionMatchingResult, testNo);
-      // console.log("matchingResult", matchingResult);
-
-      return matchingResult;
     }
-    return { analytics: {} };
+    console.log("testNo", testNo, "osfmp", osfmp, "osfnmp", osfnmp);
+
+    // ---------------------------------------------------------
+    // (3) Choose FINAL overallScalingFactor
+    // ---------------------------------------------------------
+    let overallScalingFactor: number | null = null;
+
+    if (osfmp == null && osfnmp == null) {
+      // ❌ No scaling possible from both methods
+      return {
+        analytics: {
+          note: "no_scaling_factor_found",
+          ciProducts,
+        },
+        matching: matchStackedProductsInCapturedToPlanogram(
+          ciProducts.map((p: any) => ({
+            ...p,
+            recalculatedPosition: [],
+            matchingStatus: "no_scale",
+          }))
+        ),
+      };
+    }
+
+    if (osfmp != null && osfnmp == null) {
+      overallScalingFactor = osfmp;
+    } else if (osfmp == null && osfnmp != null) {
+      overallScalingFactor = osfnmp;
+    } else if (osfmp != null && osfnmp != null) {
+      // BOTH exist → compare them
+      const diffPercent = (Math.abs(osfmp - osfnmp) / osfmp) * 100;
+      console.log("diffPercent", diffPercent);
+
+      if (diffPercent <= 15) {
+        // Close enough → matched products scaling wins
+        // overallScalingFactor = osfnmp;
+        overallScalingFactor = (osfmp +osfnmp)/2
+      } else {
+        // Far difference → STILL go with matched scaling
+        overallScalingFactor = osfnmp;
+      }
+
+      // overallScalingFactor = (osfmp +osfnmp)/2
+    }
+    console.log("overallScalingFactor", overallScalingFactor);
+
+    // Safety fallback
+    if (!overallScalingFactor || !Number.isFinite(overallScalingFactor)) {
+      overallScalingFactor = 1;
+    }
+
+    // ---------------------------------------------------------
+    // (4) Continue with your existing logic
+    // ---------------------------------------------------------
+    // According to scalling facor find widths of all products in captured image
+    const scaledWidthsOfCapturedProducts = getScaledWidthsBySku(ciProducts, overallScalingFactor);
+    // console.log("scaledWidthsOfCapturedProducts", scaledWidthsOfCapturedProducts);
+
+    // find widths of all products in planogram
+    const widthOfPlanogramProducts = getPlanogramWidths(piProducts);
+    // console.log("widthOfPlanogramProducts", widthOfPlanogramProducts);
+
+    const totalPlanogramWidth = widthOfPlanogramProducts.reduce((a, b) => a + b.width, 0);
+    const totalCapturedWidth = scaledWidthsOfCapturedProducts.reduce((a, b) => a + b.comparableWidth, 0);
+    // console.log({ totalPlanogramWidth, totalCapturedWidth });
+
+    // Recalculate positions for captured image
+    const capturedProductsWithNewPositions = recalculateCapturedPositions(widthOfPlanogramProducts, scaledWidthsOfCapturedProducts);
+    // console.log("capturedProductsWithNewPositions", capturedProductsWithNewPositions);
+
+    // Match captured products positions to planogram
+    const productPositionMatchingResult = matchProductsInCapturedToPlanogram(capturedProductsWithNewPositions, widthOfPlanogramProducts);
+    // console.log("productPositionMatchingResult", productPositionMatchingResult);
+
+    // next match stacked Products
+    const stackedProductsMatchingResult = matchStackedProductsInCapturedToPlanogram(productPositionMatchingResult);
+    // console.dir(stackedProductsMatchingResult, { depth: null });
+
+    // compare matching result
+    const matchingResult = compareResult(result, productPositionMatchingResult, testNo);
+    // console.log("matchingResult", matchingResult);
+
+    return matchingResult;
   } catch (error) {
     throw error;
   }
